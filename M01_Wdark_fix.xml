@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<config>
+    <path>/home/colinj/data/s2c_mirror/31TFJ/comb_RR240_mnt_M01t/normal/20180314/</path>
+    <type>maqt</type>
+    <context>M01_Wdark_fix</context>
+    <scale_f_aot>200</scale_f_aot>
+    <scale_f_sr>10000</scale_f_sr>
+    <nodata_aot>-10000</nodata_aot>
+</config>
