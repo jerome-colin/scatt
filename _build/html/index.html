@@ -17,32 +17,34 @@
   
 
   
+  <script type="text/javascript" src="_static/js/modernizr.min.js"></script>
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+        <script type="text/javascript" src="_static/jquery.js"></script>
+        <script type="text/javascript" src="_static/underscore.js"></script>
+        <script type="text/javascript" src="_static/doctools.js"></script>
+        <script type="text/javascript" src="_static/language_data.js"></script>
+    
+    <script type="text/javascript" src="_static/js/theme.js"></script>
 
-  
-  
     
 
   
-
   <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
   <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" /> 
-
-  
-  <script src="_static/js/modernizr.min.js"></script>
-
 </head>
 
 <body class="wy-body-for-nav">
 
    
   <div class="wy-grid-for-nav">
-
     
     <nav data-toggle="wy-nav-shift" class="wy-nav-side">
       <div class="wy-side-scroll">
-        <div class="wy-side-nav-search">
+        <div class="wy-side-nav-search" >
           
 
           
@@ -79,7 +81,8 @@
               <!-- Local TOC -->
               <div class="local-toc"><ul>
 <li><a class="reference internal" href="#">Welcome to scatt’s documentation!</a><ul>
-<li><a class="reference internal" href="#module-scatt">Main program</a></li>
+<li><a class="reference internal" href="#install-scatt">Install scatt</a></li>
+<li><a class="reference internal" href="#module-scatt">Run scatt</a></li>
 <li><a class="reference internal" href="#majatools-package">Majatools PACKAGE</a><ul>
 <li><a class="reference internal" href="#classes">Classes</a><ul>
 <li><a class="reference internal" href="#run">Run</a></li>
@@ -163,8 +166,15 @@
 <h1>Welcome to scatt’s documentation!<a class="headerlink" href="#welcome-to-scatt-s-documentation" title="Permalink to this headline">¶</a></h1>
 <div class="toctree-wrapper compound">
 </div>
+<div class="section" id="install-scatt">
+<h2>Install scatt<a class="headerlink" href="#install-scatt" title="Permalink to this headline">¶</a></h2>
+<p>Use the yaml conda environment file to create a dedicated environment.</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>conda env create -f conda-scatt.yml
+</pre></div>
+</div>
+</div>
 <div class="section" id="module-scatt">
-<span id="main-program"></span><h2>Main program<a class="headerlink" href="#module-scatt" title="Permalink to this headline">¶</a></h2>
+<span id="run-scatt"></span><h2>Run scatt<a class="headerlink" href="#module-scatt" title="Permalink to this headline">¶</a></h2>
 <p>Simple scatterplot tool to cross-compare MAJA 3 and Maquette outputs</p>
 <p>usage: scatt.py [-h] [-v] [-r n] runA runB</p>
 <dl>
@@ -317,26 +327,16 @@
   
 
 
-  
-
-    
-    
-      <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
-        <script type="text/javascript" src="_static/jquery.js"></script>
-        <script type="text/javascript" src="_static/underscore.js"></script>
-        <script type="text/javascript" src="_static/doctools.js"></script>
-        <script type="text/javascript" src="_static/language_data.js"></script>
-    
-
-  
-
-  <script type="text/javascript" src="_static/js/theme.js"></script>
-
   <script type="text/javascript">
       jQuery(function () {
           SphinxRtdTheme.Navigation.enable(true);
       });
-  </script> 
+  </script>
+
+  
+  
+    
+   
 
 </body>
 </html>

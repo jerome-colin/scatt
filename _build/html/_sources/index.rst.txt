@@ -10,8 +10,19 @@ Welcome to scatt's documentation!
    :maxdepth: 4
    :caption: Contents:
 
-Main program
-============
+Install scatt
+=============
+
+Use the yaml conda environment file to create a dedicated environment.
+
+.. code-block:: bash
+
+   conda env create -f conda-scatt.yml
+
+
+Run scatt
+=========
+
 .. automodule:: scatt
     :members: main
 
