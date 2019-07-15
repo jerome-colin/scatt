@@ -1,5 +1,11 @@
 """
 Majatools PACKAGE
+
+Recommended conda env:
+python=3.6
+conda install -c conda-forge gdal matplotlib scipy
+
+Note: don't mix gdal packages from base and from forge
 """
 __author__ = "Jerome Colin"
 __license__ = "CC BY"
