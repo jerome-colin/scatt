@@ -1,4 +1,4 @@
-# Simple scatter plot utility to cross compare MAJA and MAQUETTE AOT outputs
+# Very basic scatter plot utility to cross compare MAJA AOT outputs
 
 **Read the doc in: ```_build/html/index.html```**
 
