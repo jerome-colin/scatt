@@ -100,5 +100,5 @@ dependencies:
   - xz=5.2.4=h14c3975_4
   - zlib=1.2.11=h7b6447c_3
   - zstd=1.4.0=h3b9ef0a_0
-prefix: /home/colin/miniconda3/envs/scatt
+prefix: ~/miniconda3/envs/scatt
 
