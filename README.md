@@ -2,6 +2,21 @@
 
 **Read the doc in: ```_build/html/index.html```**
 
+```
+Usage: scatt.py [-h] [-v] [-r n] runA runB
+positional arguments:
+  runA                  XML file describing run A
+  runB                  XML file describing run A
+optional arguments:
+  -h, --help            show this help message and exit
+  -v, --verbose         Set verbosity to INFO level
+  -r, --resampling      Integer n such that products are resampled to 1/n
+Example:
+    ./scatt.py M01_MAJA.xml M01_MAQT.xml -r 12
+```
+MAJA outputs can be either from production C++ version or Python prototype.
+
+
 ## Python environment
 
 Recommended way to have a python conda env suited to this code:
