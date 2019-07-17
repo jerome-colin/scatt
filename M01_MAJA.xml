@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <config>
-    <path>/home/colinj/data/hal_mirror/GIPP_S2_MAJA_3.3_TM_M01/SENTINEL2B_20180314-104014-461_L2A_T31TFJ_C_V1-0/</path>
+    <path>GIPP_S2_MAJA_3.3_TM_M01/SENTINEL2B_20180314-104014-461_L2A_T31TFJ_C_V1-0/</path>
     <type>maja</type>
     <context>M01</context>
     <scale_f_aot>200</scale_f_aot>
