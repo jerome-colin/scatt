@@ -1,9 +1,16 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <config>
+    <!--Full path to root directory of a given date in a time series-->
     <path>comb_RR240_mnt_M01/normal/20180314/</path>
+    <!--Values can be 'maja' for C++ version, or 'maqt' for Python prototype -->
     <type>maqt</type>
+    <!--Run tag, used to label plots and name files -->
     <context>M01</context>
+    <!--TODO: get the later parameters from product meta-data -->
+    <!--AOT scale factor -->
     <scale_f_aot>200</scale_f_aot>
+    <!--Surface reflectance scale factor -->
     <scale_f_sr>10000</scale_f_sr>
+    <!--No data are replaced by NaN, and plots are made on finite values only -->
     <nodata_aot>-10000</nodata_aot>
 </config>
