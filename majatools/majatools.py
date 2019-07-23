@@ -179,7 +179,7 @@ class Image:
 
 def scatterplot(a, b, \
                 title = "demo", xt = "x", yt = "y", \
-                f_savefig = "demo.png", mode='aot'):
+                f_savefig = "demo.png", mode='aot', show = False):
     """
 
     :param a: numpy array (1D or 2D)
@@ -206,5 +206,6 @@ def scatterplot(a, b, \
     plt.ylabel(yt)
     ax.plot(a, b, 'bo', markersize=2)
     plt.savefig(f_savefig, format='png')
-    plt.show()
+    if show == True:
+        plt.show()
 
