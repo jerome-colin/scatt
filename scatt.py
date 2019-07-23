@@ -55,7 +55,7 @@ def main():
             print("INFO: Run A is of type %s, Run B is of type %s" % (A.get_type(), B.get_type()))
 
     else:
-        print("ERROR: Couldn't find required input file %s" % args.infile)
+        print("ERROR: you have a typo in one XML file name, please check")
         sys.exit(1)
 
     # Load band mask
@@ -74,10 +74,10 @@ def main():
     aot_b_rs = B.load_band(name="aot").resample(n=scaling_n).get_finite(mask=common_pure_pixels)
 
     majatools.scatterplot(aot_a_rs.band, aot_b_rs.band, \
-                          title=A.context + " " + A.type + " vs " + B.context + " " + B.type, \
-                          xt=aot_a_rs.band_name, \
-                          yt=aot_b_rs.band_name, \
-                          f_savefig=A.context + "_" + aot_a_rs.band_name.replace(" ", "-") \
+                          title     = A.context + " " + A.type + " vs " + B.context + " " + B.type, \
+                          xt        = A.context + " " + aot_a_rs.band_name, \
+                          yt        = B.context + " " + aot_b_rs.band_name, \
+                          f_savefig = A.context + "_" + aot_a_rs.band_name.replace(" ", "-") \
                                     + "_vs_" \
                                     + B.context + "_" + aot_b_rs.band_name.replace(" ", "-") \
                                     + ".png"
