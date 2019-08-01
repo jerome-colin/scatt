@@ -225,8 +225,9 @@ class Image:
 def diffmap(a, b, mode, with_dtm=False):
     """
     Produce an absolute difference map as image
-    :param a:
-    :param b:
+    :param a: a numpy 2D array
+    :param b: b numpy 2D array
+    :param mode: either "aot" or "sreXX" where XX refers to a band (eg. B3)
     """
 
     var_a = a.load_band(name=mode)
@@ -277,14 +278,16 @@ def scatterplot(a, b, c, d, \
                 title="demo", xt="x", yt="y", \
                 f_savefig="demo.png", mode='aot', show=False):
     """
-
-    :param a: numpy array (1D or 2D)
-    :param b: numpy array (1D or 2D)
+    :param a: sample a, all land and water pixels, numpy array (1D or 2D)
+    :param b: sample b, all land and water pixels, numpy array (1D or 2D)
+    :param c: sample c, only land pixels, numpy array (1D or 2D)
+    :param d: sample d, only land pixels, numpy array (1D or 2D)
     :param title: string of title
     :param xt: label of x axis
     :param yt: label of y axis
     :param f_savefig: filename to save the figure to
     :param mode: defines axis range, defaults to 'aot'
+    :param show: showing plot, defaults to False
     :return:
     """
     slope, intercept, r_value_all, p_value, std_err_all = stats.linregress(a, b)
