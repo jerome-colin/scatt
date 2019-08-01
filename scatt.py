@@ -73,14 +73,12 @@ def main():
 
     # Load water mask
     try:
-        water = A.load_band(name="water mask").resample(n=scaling_n)#.get_finite(mask=common_pure_pixels)
+        water = A.load_band(name="water mask").resample(n=scaling_n)  # .get_finite(mask=common_pure_pixels)
         common_without_water = common_pure_pixels + water.band
 
     except:
         print("Unexpected error:", sys.exc_info()[0])
         raise
-
-
 
     # Scatterplot of AOT
     aot_a_rs = A.load_band(name="aot").resample(n=scaling_n).get_finite(mask=common_pure_pixels)
@@ -89,7 +87,7 @@ def main():
     aot_b_rs_without_water = B.load_band(name="aot").resample(n=scaling_n).get_finite(mask=common_without_water)
 
     majatools.scatterplot(aot_a_rs.band, aot_b_rs.band, \
-                          aot_a_rs_without_water.band, aot_b_rs_without_water.band,\
+                          aot_a_rs_without_water.band, aot_b_rs_without_water.band, \
                           title=A.context + " " + A.type + " vs " + B.context + " " + B.type, \
                           xt=A.context + " " + aot_a_rs.band_name, \
                           yt=B.context + " " + aot_b_rs.band_name, \
@@ -99,15 +97,17 @@ def main():
                                     + ".png"
                           )
 
-    # Scatterplot of SRE
-    for s2band in ("B2","B3","B4"):
-        sre_a_rs = A.load_band(name="sre"+s2band).resample(n=scaling_n).get_finite(mask=common_pure_pixels)
-        sre_b_rs = B.load_band(name="sre"+s2band).resample(n=scaling_n).get_finite(mask=common_pure_pixels)
-        sre_a_without_water = A.load_band(name="sre"+s2band).resample(n=scaling_n).get_finite(mask=common_without_water)
-        sre_b_without_water = B.load_band(name="sre"+s2band).resample(n=scaling_n).get_finite(mask=common_without_water)
+    # Scatterplots of SRE
+    for s2band in ("B2", "B3", "B4"):
+        sre_a_rs = A.load_band(name="sre" + s2band).resample(n=scaling_n).get_finite(mask=common_pure_pixels)
+        sre_b_rs = B.load_band(name="sre" + s2band).resample(n=scaling_n).get_finite(mask=common_pure_pixels)
+        sre_a_without_water = A.load_band(name="sre" + s2band).resample(n=scaling_n).get_finite(
+            mask=common_without_water)
+        sre_b_without_water = B.load_band(name="sre" + s2band).resample(n=scaling_n).get_finite(
+            mask=common_without_water)
 
         majatools.scatterplot(sre_a_rs.band, sre_b_rs.band, \
-                              sre_a_without_water.band, sre_b_without_water.band,\
+                              sre_a_without_water.band, sre_b_without_water.band, \
                               title=A.context + " " + A.type + " vs " + B.context + " " + B.type, \
                               xt=A.context + " " + sre_a_rs.band_name, \
                               yt=B.context + " " + sre_b_rs.band_name, \
@@ -115,9 +115,8 @@ def main():
                                         + "_vs_" \
                                         + B.context + "_" + sre_b_rs.band_name.replace(" ", "-") \
                                         + ".png", \
-                                        mode="sre"
+                              mode="sre"
                               )
-
 
     if args.diffmap:
         if args.withDTM:
