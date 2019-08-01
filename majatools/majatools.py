@@ -25,7 +25,8 @@ class Run:
     """
     Run object described by an XML context file, storing run attributes and providing an load_band method
     """
-    def __init__(self, f_config, verbosity = False):
+
+    def __init__(self, f_config, verbosity=False):
         """
         Initialization of Run
         :param f_config: XML context file passed as argument runA|runB
@@ -41,10 +42,20 @@ class Run:
             self.scale_f_sr = float(self.xml_config.getElementsByTagName("scale_f_sr")[0].firstChild.nodeValue)
             self.nodata_aot = float(self.xml_config.getElementsByTagName("nodata_aot")[0].firstChild.nodeValue)
 
+
         except IndexError as e:
-            print("ERROR: Missing parameter in XML file %s" % f_config)
+            print("ERROR: Mandatory parameter missing in XML file %s" % f_config)
             print(e)
             sys.exit(1)
+
+        # Optional parameters
+        try:
+            self.dtm_path = self.xml_config.getElementsByTagName("dtm_path")[0].firstChild.nodeValue
+            self.water_path = self.xml_config.getElementsByTagName("water_path")[0].firstChild.nodeValue
+
+
+        except:
+            pass
 
     def get_type(self):
         """
@@ -68,13 +79,22 @@ class Run:
                 print("ERROR: Unable to find aot product...")
                 sys.exit(1)
 
+        if name[:3] == "sre":
+            if self.type == "maja":
+                f_img = glob.glob(self.path + "*SRE_"+ name[-2:] + "*")[0]
+            elif self.type == "maqt":
+                f_img = glob.glob(self.path + "ORTHO_SURF_AOT/*10m."+ name[-2:])[0]
+            else:
+                print("ERROR: Unable to find SRE product...")
+                sys.exit(1)
+
         if name == "cloud_mask":
             if self.type == "maja":
                 f_img = glob.glob(self.path + "MASKS/*CLM_R1.tif")[0]
             elif self.type == "maqt":
                 f_img = glob.glob(self.path + "MASQUES/NUAGES/*_10m.nua")[0]
             else:
-                print("ERROR: Unable to find aot product...")
+                print("ERROR: Unable to find cloud_mask product...")
                 sys.exit(1)
 
         if name == "edge_mask":
@@ -83,11 +103,20 @@ class Run:
             elif self.type == "maqt":
                 f_img = glob.glob(self.path + "MASQUES/BORD/*_10m.bord_final")[0]
             else:
-                print("ERROR: Unable to find aot product...")
+                print("ERROR: Unable to find edge_mask product...")
                 sys.exit(1)
 
-        if self.verbosity:
-            print("INFO: Found file %s" % f_img.split("/")[-1])
+        if name == "water mask":
+            try:
+                f_img = glob.glob(self.water_path + "*_10m.water")[0]
+            except:
+                print("WARNING: Unable to find WATER MASK product for %s..." % self.type)
+
+        if name == "dtm":
+            try:
+                f_img = glob.glob(self.dtm_path + "*10mfloat.mnt")[0]
+            except:
+                print("WARNING: Unable to find DTM product for %s..." % self.type)
 
         try:
             data = gdal.Open(f_img)
@@ -96,12 +125,18 @@ class Run:
             print(e)
             sys.exit(1)
 
+        if self.verbosity:
+            print("INFO: Found file %s" % f_img.split("/")[-1])
+
         if name == "aot" and self.type == "maja":
             return Image(data.GetRasterBand(2).ReadAsArray(), self.type + " " + name, \
-                         self.scale_f_aot, verbosity=self.verbosity)
+                         scale_f=self.scale_f_aot, verbosity=self.verbosity)
         elif name == "aot" and self.type == "maqt":
             return Image(data.GetRasterBand(1).ReadAsArray(), self.type + " " + name, \
-                         self.scale_f_aot, verbosity=self.verbosity)
+                         scale_f=self.scale_f_aot, verbosity=self.verbosity)
+        elif name[:3] == "sre":
+            return Image(data.GetRasterBand(1).ReadAsArray(), self.type + " " + name, \
+                         scale_f=self.scale_f_sr, verbosity=self.verbosity)
         else:
             return Image(data.GetRasterBand(1).ReadAsArray(), self.type + " " + name, verbosity=self.verbosity)
 
@@ -110,7 +145,8 @@ class Image:
     """
     Extends a numpy array with attributes from Run, adds specifics methods
     """
-    def __init__(self, band, band_name, scale_f = 1, nodata = -10000, verbosity = False):
+
+    def __init__(self, band, band_name, scale_f=1, nodata=-10000, verbosity=False):
         """
         Initialization of Image
         :param band: numpy array
@@ -133,7 +169,7 @@ class Image:
         # Apply scale factor
         self.band /= self.scale_f
 
-    def get_finite(self, mask = None):
+    def get_finite(self, mask=None):
         """
         :param mask: optional filter to remove any non-zero pixels from self.band
         :return: a vector of finite values of self.band
@@ -173,13 +209,73 @@ class Image:
 
             return Image(subset, self.band_name + " resampled", verbosity=self.verbosity)
 
-    def apply_mask(self):
-        pass
+    def apply_mask(self, mask, reverse=False):
+        """
+        Apply a given mask to self, replacing non-zeros by NaN
+        :param mask:
+        """
+        if reverse:
+            search = np.where(mask.band == 0)
+            self.band[search] = np.NaN
+        else:
+            search = np.where(mask.band != 0)
+            self.band[search] = np.NaN
 
 
-def scatterplot(a, b, \
-                title = "demo", xt = "x", yt = "y", \
-                f_savefig = "demo.png", mode='aot', show = False):
+def diffmap(a, b, mode, with_dtm=False):
+    """
+    Produce an absolute difference map as image
+    :param a:
+    :param b:
+    """
+
+    var_a = a.load_band(name=mode)
+    var_b = b.load_band(name=mode)
+
+    edge_a = a.load_band(name="edge_mask")
+    edge_b = b.load_band(name="edge_mask")
+
+    if with_dtm:
+        try:
+            dtm = a.load_band(name="dtm")
+            water = a.load_band(name="water mask")
+            dtm.apply_mask(water)
+
+        except:
+            try:
+                dtm = b.load_band(name="dtm")
+                water = b.load_band(name="water mask")
+                dtm.apply_mask(water)
+            except:
+                print("WARNING: Unable to find any DTM product or unspecified in XML, skipping option withDTM...")
+                with_dtm = False
+
+    var_a.apply_mask(edge_a)
+    var_b.apply_mask(edge_b)
+    diff = np.abs(var_a.band - var_b.band)
+
+    plt.clf()
+
+    if with_dtm:
+        plt.subplots(figsize=(12, 6))
+        plt.subplot(121)
+
+    plt.title("Abs(%s %s - %s %s)" % (a.context, a.type, b.context, b.type))
+    plt.imshow(diff, interpolation='none')
+    plt.colorbar(orientation="horizontal")
+
+    if with_dtm:
+        plt.subplot(122)
+        plt.imshow(dtm.band, interpolation='none', cmap='terrain')
+        plt.colorbar(orientation="horizontal")
+        plt.title("MNT")
+
+    plt.savefig("Diffmap_%s_%s-%s_%s.png" % (a.context, a.type, b.context, b.type))
+
+
+def scatterplot(a, b, c, d, \
+                title="demo", xt="x", yt="y", \
+                f_savefig="demo.png", mode='aot', show=False):
     """
 
     :param a: numpy array (1D or 2D)
@@ -191,21 +287,33 @@ def scatterplot(a, b, \
     :param mode: defines axis range, defaults to 'aot'
     :return:
     """
-    slope, intercept, r_value, p_value, std_err = stats.linregress(a,b)
+    slope, intercept, r_value_all, p_value, std_err_all = stats.linregress(a, b)
+    slope, intercept, r_value_ground, p_value, std_err_ground = stats.linregress(c, d)
 
-    fig, ax = plt.subplots(figsize=(6, 6))
-    plt.title("%s (R2 = %6.4f)" % (title, r_value))
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 6))
+    ax1.set_title("%s land and water (R2 = %8.6f)" % (title, r_value_all))
 
-    if mode == 'sr':
-        ax.plot([0, 0.5], [0, 0.5], 'k--')
+    if mode == 'sre':
+        ax1.plot([0, 1.0], [0, 1.0], 'k--')
     elif mode == 'aot':
-        ax.plot([0, 0.6], [0, 0.6], 'k--')
+        ax1.plot([0, 0.6], [0, 0.6], 'k--')
 
-    ax.set_aspect('equal', 'box')
-    plt.xlabel(xt)
-    plt.ylabel(yt)
-    ax.plot(a, b, 'bo', markersize=2)
+    ax1.set_aspect('equal', 'box')
+    ax1.set_xlabel(xt)
+    ax1.set_ylabel(yt)
+    ax1.plot(a, b, 'bo', markersize=2)
+
+    ax2.set_title("%s land only (R2 = %8.6f)" % (title, r_value_ground))
+    if mode == 'sre':
+        ax2.plot([0, 1.0], [0, 1.0], 'k--')
+    elif mode == 'aot':
+        ax2.plot([0, 0.6], [0, 0.6], 'k--')
+
+    ax2.set_aspect('equal', 'box')
+    ax2.set_xlabel(xt)
+    ax2.set_ylabel(yt)
+    ax2.plot(c, d, 'go', markersize=2)
+
     plt.savefig(f_savefig, format='png')
     if show == True:
         plt.show()
-
