@@ -23,7 +23,7 @@ from osgeo import gdal
 
 class Run:
     """
-    Run object described by an XML context file, storing run attributes and providing an load_band method
+    Run object described by an XML context file, storing run attributes and providing a load_band method
     """
 
     def __init__(self, f_config, verbosity=False):
@@ -83,7 +83,7 @@ class Run:
             if self.type == "maja":
                 f_img = glob.glob(self.path + "*SRE_"+ name[-2:] + "*")[0]
             elif self.type == "maqt":
-                f_img = glob.glob(self.path + "ORTHO_SURF_AOT/*10m."+ name[-2:])[0]
+                f_img = glob.glob(self.path + "ORTHO_SURF_AOT/*10m." + name[-2:])[0]
             else:
                 print("ERROR: Unable to find SRE product...")
                 sys.exit(1)
@@ -110,7 +110,7 @@ class Run:
             try:
                 f_img = glob.glob(self.water_path + "*_10m.water")[0]
             except:
-                print("WARNING: Unable to find WATER MASK product for %s..." % self.type)
+                print("WARNING: Unable to find WATER MASK product for %s in %s" % (self.type, self.water_path))
 
         if name == "dtm":
             try:
@@ -290,11 +290,17 @@ def scatterplot(a, b, c, d, \
     :param show: showing plot, defaults to False
     :return:
     """
-    slope, intercept, r_value_all, p_value, std_err_all = stats.linregress(a, b)
-    slope, intercept, r_value_ground, p_value, std_err_ground = stats.linregress(c, d)
+    #slope_all, intercept_all, r_value_all, p_value_all, std_err_all = stats.linregress(a, b)
+    #slope_ground, intercept_ground, r_value_ground, p_value_ground, std_err_ground = stats.linregress(c, d)
+
+    diff_all = a - b
+    std_all = np.sqrt(np.mean(abs(diff_all - diff_all.mean()) ** 2))
+
+    diff_ground = c - d
+    std_ground = np.sqrt(np.mean(abs(diff_ground - diff_ground.mean()) ** 2))
 
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 6))
-    ax1.set_title("%s land and water (R2 = %8.6f)" % (title, r_value_all))
+    ax1.set_title("Cloud-free pixels (std dev=%8.4f)" % (std_all))
 
     if mode == 'sre':
         ax1.plot([0, 1.0], [0, 1.0], 'k--')
@@ -306,7 +312,7 @@ def scatterplot(a, b, c, d, \
     ax1.set_ylabel(yt)
     ax1.plot(a, b, 'bo', markersize=2)
 
-    ax2.set_title("%s land only (R2 = %8.6f)" % (title, r_value_ground))
+    ax2.set_title("Cloud-free pixels, land only (std dev=%8.4f)" % (std_ground))
     if mode == 'sre':
         ax2.plot([0, 1.0], [0, 1.0], 'k--')
     elif mode == 'aot':
