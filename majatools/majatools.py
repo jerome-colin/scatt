@@ -9,7 +9,7 @@ Note: don't mix gdal packages from base and from forge
 """
 __author__ = "Jerome Colin"
 __license__ = "CC BY"
-__version__ = "0.1.1"
+__version__ = "0.1.2"
 
 import glob
 import sys
