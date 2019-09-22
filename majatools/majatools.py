@@ -9,7 +9,7 @@ Note: don't mix gdal packages from base and from forge
 """
 __author__ = "Jerome Colin"
 __license__ = "CC BY"
-__version__ = "0.1.2"
+__version__ = "0.1.3"
 
 import glob
 import sys
@@ -88,6 +88,15 @@ class Run:
                 print("ERROR: Unable to find SRE product...")
                 sys.exit(1)
 
+        if name[:3] == "toa":
+            if self.type == "maja":
+                print("ERROR: Not yet implemented...")
+            elif self.type == "maqt":
+                f_img = glob.glob(self.path + "ORTHO_TOA_ABS/*10m." + name[-2:])[0]
+            else:
+                print("ERROR: Unable to find TOA product...")
+                sys.exit(1)
+
         if name == "cloud_mask":
             if self.type == "maja":
                 f_img = glob.glob(self.path + "MASKS/*CLM_R1.tif")[0]
@@ -135,6 +144,9 @@ class Run:
             return Image(data.GetRasterBand(1).ReadAsArray(), self.type + " " + name, \
                          scale_f=self.scale_f_aot, verbosity=self.verbosity)
         elif name[:3] == "sre":
+            return Image(data.GetRasterBand(1).ReadAsArray(), self.type + " " + name, \
+                         scale_f=self.scale_f_sr, verbosity=self.verbosity)
+        elif name[:3] == "toa":
             return Image(data.GetRasterBand(1).ReadAsArray(), self.type + " " + name, \
                          scale_f=self.scale_f_sr, verbosity=self.verbosity)
         else:
@@ -322,6 +334,52 @@ def scatterplot(a, b, c, d, \
     ax2.set_xlabel(xt)
     ax2.set_ylabel(yt)
     ax2.plot(c, d, 'go', markersize=2)
+
+    plt.savefig(f_savefig, format='png')
+    if show == True:
+        plt.show()
+
+def atmplot(toa, rse, aot,\
+                title="demo", xt="x", yt="y", \
+                f_savefig="demo.png", mode='cloud_free', show=False):
+    """
+    :param a: sample a, all land and water pixels, numpy array (1D or 2D)
+    :param b: sample b, all land and water pixels, numpy array (1D or 2D)
+    :param c: sample c, only land pixels, numpy array (1D or 2D)
+    :param d: sample d, only land pixels, numpy array (1D or 2D)
+    :param title: string of title
+    :param xt: label of x axis
+    :param yt: label of y axis
+    :param f_savefig: filename to save the figure to
+    :param mode: defines axis range, defaults to 'aot'
+    :param show: showing plot, defaults to False
+    :return:
+    """
+    #slope_all, intercept_all, r_value_all, p_value_all, std_err_all = stats.linregress(a, b)
+    #slope_ground, intercept_ground, r_value_ground, p_value_ground, std_err_ground = stats.linregress(c, d)
+
+    fig, ax1 = plt.subplots(1, 1, figsize=(6, 6))
+
+    if mode=="cloud_free":
+        ax1.set_title("SRE=f(TOA), cloud-free pixels")
+    else:
+        ax1.set_title("SRE=f(TOA)")
+
+    max_range = max([aot.max(),rse.max()])
+    ax1.plot([0.0, max_range], [0.0, max_range], 'k--')
+
+    ax1.set_aspect('equal', 'box')
+    ax1.set_xlabel(xt)
+    ax1.set_ylabel(yt)
+
+    print("INFO: min AOT=%6.4f, max AOT=%6.4f" % (aot.min(), aot.max()))
+
+    aot_step = 0.2
+    for aot_r in np.arange(0, aot.max(), aot_step):
+        aot_s = np.where(np.logical_and(aot >= aot_r, aot < aot_r+aot_step))
+        lbl = ("AOT[%4.2f-%4.2f]" % (aot_r, aot_r+aot_step))
+        ax1.plot(toa[aot_s],rse[aot_s], '.', markersize=4, label=lbl)
+        ax1.legend(loc='upper right')
 
     plt.savefig(f_savefig, format='png')
     if show == True:
