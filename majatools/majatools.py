@@ -310,6 +310,7 @@ def scatterplot(a, b, c, d, \
 
     diff_ground = c - d
     std_ground = np.sqrt(np.mean(abs(diff_ground - diff_ground.mean()) ** 2))
+    std_ground = np.std(diff_all)
 
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 6))
     ax1.set_title("Cloud-free pixels (std dev=%8.4f)" % (std_all))
