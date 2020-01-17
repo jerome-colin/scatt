@@ -11,11 +11,13 @@ __author__ = "Jerome Colin"
 __license__ = "CC BY"
 __version__ = "0.2.1"
 
+import datetime
 import glob
 import sys
 import numpy as np
 import matplotlib.pyplot as plt
 import os
+import re
 
 from xml.dom import minidom
 from osgeo import gdal
@@ -71,7 +73,7 @@ class Image:
     def get_finite(self, mask=None):
         """
         :param mask: optional filter to remove any non-zero pixels from self.band
-        :return: a vector of finite values of self.band
+        :return: a vector of finite values of Image.band
         """
         if mask is not None:
             search = np.where(mask > 0)
@@ -138,7 +140,7 @@ class Image:
 
     def __crop_band_by_aoi(self, aoi):
         """
-        Crops an array according to AOI extent
+        Crops an Image band according to AOI extent
         :param aoi: an Aoi instance
         :return: an array
         """
@@ -149,7 +151,7 @@ class Image:
     def __get_band_size(self):
         """
         Private, returns band dimensions
-        :return:
+        :return: a tuple of int
         """
         try:
             return len(self.band[0, :]), len(self.band[:, 0])
@@ -168,6 +170,13 @@ class Image:
         else:
             search = np.where(mask.band != 0)
             self.band[search] = np.NaN
+
+    def get_pixel_count(self):
+        x, y = self.__get_band_size()
+        if y != 0:
+            return x * y
+        else:
+            return x
 
 
 class Run:
@@ -202,16 +211,8 @@ class Run:
             self.dtm_path = self.xml_config.getElementsByTagName("dtm_path")[0].firstChild.nodeValue
             self.water_path = self.xml_config.getElementsByTagName("water_path")[0].firstChild.nodeValue
 
-
         except:
             pass
-
-    def get_type(self):
-        """
-        Return Run type
-        :return: string of type of the run, typically "maja" or "maqt"
-        """
-        return self.type
 
     def load_band(self, name="aot", subset=False, ulx=0, uly=0, lrx=0, lry=0):
         """
@@ -226,11 +227,84 @@ class Run:
         :return: an Image object of the related band name
         """
 
+        # Identify product file in product collection
+        f_img = self.__get_f_img(name=name)
+
+        # Extract a Gdal dataset from product file (optionally subset)
+        data = self.__get_gdal_dataset(f_img, subset=subset, ulx=ulx, uly=uly, lrx=lrx, lry=lry)
+
+        if self.verbosity:
+            print("INFO: Found file %s" % f_img.split("/")[-1])
+
+        # Construct Image instance
+        if name == "aot" and self.type == "maja":
+            return Image(data.GetRasterBand(2).ReadAsArray(), self.type + " " + name, \
+                         scale_f=self.scale_f_aot, verbosity=self.verbosity)
+        elif name == "aot" and self.type == "maqt":
+            return Image(data.GetRasterBand(1).ReadAsArray(), self.type + " " + name, \
+                         scale_f=self.scale_f_aot, verbosity=self.verbosity)
+        elif name[:3] == "sre":
+            return Image(data.GetRasterBand(1).ReadAsArray(), self.type + " " + name, \
+                         scale_f=self.scale_f_sr, verbosity=self.verbosity)
+        elif name[:3] == "toa":
+            return Image(data.GetRasterBand(1).ReadAsArray(), self.type + " " + name, \
+                         scale_f=self.scale_f_sr, verbosity=self.verbosity)
+        else:
+            return Image(data.GetRasterBand(1).ReadAsArray(), self.type + " " + name, verbosity=self.verbosity)
+
+    def get_timestamp(self):
+        """
+        Get the timestamp of a given Run object as a string of format %Y%m%d-%H%M%S"
+        :return: a string
+        """
+        if self.type == "maja":
+            try:
+                pattern = "[0-9]{8}\-[0-9]{6}"
+                s = re.findall(pattern, self.path)
+                return datetime.datetime.strptime(s[0], "%Y%m%d-%H%M%S")
+            except IndexError:
+                print("WARNING: couldn't find any timestamp for %s" % self.context)
+                return None
+        else:
+            pass
+
+    def get_type(self):
+        """
+        Return Run type
+        :return: string of type of the run, typically "maja" or "maqt"
+        """
+        return self.type
+
+    def __get_f_img(self, name):
+        """
+        Finds the actual file that relates to a variable name for a given product collection
+        :param name: variable name
+        :return: a file name
+        """
+        # Kept for backward compatibility
         if name == "aot":
             if self.type == "maja":
                 f_img = glob.glob(self.path + "*ATB_R1*")[0]
             elif self.type == "maqt":
                 f_img = glob.glob(self.path + "ORTHO_SURF_AOT/*10m.tau2")[0]
+            else:
+                print("ERROR: Unable to find aot product...")
+                sys.exit(1)
+
+        if name == "aot_R1":
+            if self.type == "maja":
+                f_img = glob.glob(self.path + "*ATB_R1*")[0]
+            elif self.type == "maqt":
+                f_img = glob.glob(self.path + "ORTHO_SURF_AOT/*10m.tau2")[0]
+            else:
+                print("ERROR: Unable to find aot product...")
+                sys.exit(1)
+
+        if name == "aot_R2":
+            if self.type == "maja":
+                f_img = glob.glob(self.path + "*ATB_R2*")[0]
+            elif self.type == "maqt":
+                f_img = glob.glob(self.path + "ORTHO_SURF_AOT/*20m.tau2")[0]
             else:
                 print("ERROR: Unable to find aot product...")
                 sys.exit(1)
@@ -253,6 +327,7 @@ class Run:
                 print("ERROR: Unable to find TOA product...")
                 sys.exit(1)
 
+        # Kept for backward compatibility
         if name == "cloud_mask":
             if self.type == "maja":
                 f_img = glob.glob(self.path + "MASKS/*CLM_R1.tif")[0]
@@ -262,11 +337,48 @@ class Run:
                 print("ERROR: Unable to find cloud_mask product...")
                 sys.exit(1)
 
+        if name == "cloud_mask_R1":
+            if self.type == "maja":
+                f_img = glob.glob(self.path + "MASKS/*CLM_R1.tif")[0]
+            elif self.type == "maqt":
+                f_img = glob.glob(self.path + "MASQUES/NUAGES/*_10m.nua")[0]
+            else:
+                print("ERROR: Unable to find cloud_mask product...")
+                sys.exit(1)
+
+        if name == "cloud_mask_R2":
+            if self.type == "maja":
+                f_img = glob.glob(self.path + "MASKS/*CLM_R2.tif")[0]
+            elif self.type == "maqt":
+                f_img = glob.glob(self.path + "MASQUES/NUAGES/*_20m.nua")[0]
+            else:
+                print("ERROR: Unable to find cloud_mask product...")
+                sys.exit(1)
+
+        # Kept for backward compatibility
         if name == "edge_mask":
             if self.type == "maja":
                 f_img = glob.glob(self.path + "MASKS/*_EDG_R1.tif")[0]
             elif self.type == "maqt":
                 f_img = glob.glob(self.path + "MASQUES/BORD/*_10m.bord_final")[0]
+            else:
+                print("ERROR: Unable to find edge_mask product...")
+                sys.exit(1)
+
+        if name == "edge_mask_R1":
+            if self.type == "maja":
+                f_img = glob.glob(self.path + "MASKS/*_EDG_R1.tif")[0]
+            elif self.type == "maqt":
+                f_img = glob.glob(self.path + "MASQUES/BORD/*_10m.bord_final")[0]
+            else:
+                print("ERROR: Unable to find edge_mask product...")
+                sys.exit(1)
+
+        if name == "edge_mask_R2":
+            if self.type == "maja":
+                f_img = glob.glob(self.path + "MASKS/*_EDG_R2.tif")[0]
+            elif self.type == "maqt":
+                f_img = glob.glob(self.path + "MASQUES/BORD/*_20m.bord_final")[0]
             else:
                 print("ERROR: Unable to find edge_mask product...")
                 sys.exit(1)
@@ -283,6 +395,19 @@ class Run:
             except:
                 print("WARNING: Unable to find DTM product for %s..." % self.type)
 
+        return f_img
+
+    def __get_gdal_dataset(self, f_img, subset=False, ulx=0, uly=0, lrx=0, lry=0):
+        """
+        Extract a Gdal object from a product file, optionally a subset from coordinates
+        :param f_img: product image file
+        :param subset: if True use gdal_translate to subset an AOI
+        :param ulx: upper left x
+        :param uly: upper left y
+        :param lrx: lower right x
+        :param lry: lower right y
+        :return: a gdal object
+        """
         try:
             data = gdal.Open(f_img)
         except RuntimeError as e:
@@ -301,24 +426,7 @@ class Run:
                 print('ERROR: Unable to open ' + f_img)
                 print(e)
                 sys.exit(1)
-
-        if self.verbosity:
-            print("INFO: Found file %s" % f_img.split("/")[-1])
-
-        if name == "aot" and self.type == "maja":
-            return Image(data.GetRasterBand(2).ReadAsArray(), self.type + " " + name, \
-                         scale_f=self.scale_f_aot, verbosity=self.verbosity)
-        elif name == "aot" and self.type == "maqt":
-            return Image(data.GetRasterBand(1).ReadAsArray(), self.type + " " + name, \
-                         scale_f=self.scale_f_aot, verbosity=self.verbosity)
-        elif name[:3] == "sre":
-            return Image(data.GetRasterBand(1).ReadAsArray(), self.type + " " + name, \
-                         scale_f=self.scale_f_sr, verbosity=self.verbosity)
-        elif name[:3] == "toa":
-            return Image(data.GetRasterBand(1).ReadAsArray(), self.type + " " + name, \
-                         scale_f=self.scale_f_sr, verbosity=self.verbosity)
-        else:
-            return Image(data.GetRasterBand(1).ReadAsArray(), self.type + " " + name, verbosity=self.verbosity)
+        return data
 
 
 def diffmap(a, b, mode, with_dtm=False):
@@ -373,7 +481,7 @@ def diffmap(a, b, mode, with_dtm=False):
     plt.savefig("Diffmap_%s_%s-%s_%s.png" % (a.context, a.type, b.context, b.type))
 
 
-def single_scatterplot(a, b, x_context="A", y_context="B", mode='aot', show=False):
+def single_scatterplot(a, b, mask, x_context="A", y_context="B", mode='aot', show=False):
     """
     :param a: sample a, all land and water pixels, numpy array (1D or 2D)
     :param b: sample b, all land and water pixels, numpy array (1D or 2D)
@@ -386,10 +494,18 @@ def single_scatterplot(a, b, x_context="A", y_context="B", mode='aot', show=Fals
     :return: png file
     """
 
-    rmse = np.std(a.band - b.band)
+    masked_a = a.get_finite(mask=mask)
+    masked_b = b.get_finite(mask=mask)
+
+    px_count = a.get_pixel_count()
+    mask_count = masked_a.get_pixel_count()
+
+    ratio = mask_count / px_count
+
+    rmse = np.std(masked_a.band - masked_b.band)
 
     fig, (ax1) = plt.subplots(1, figsize=(6, 6))
-    ax1.set_title("%i cloud-free pixels (rmse = %8.4f)" % (len(a.band), rmse))
+    ax1.set_title("%3.1f %% cloud-free pixels (rmse = %5.4f)" % (ratio * 100, rmse))
 
     if mode == 'sre':
         ax1.plot([0, 1.0], [0, 1.0], 'k--')
@@ -399,14 +515,17 @@ def single_scatterplot(a, b, x_context="A", y_context="B", mode='aot', show=Fals
     ax1.set_aspect('equal', 'box')
     ax1.set_xlabel(x_context + " " + a.band_name)
     ax1.set_ylabel(y_context + " " + b.band_name)
-    ax1.plot(a.band, b.band, 'bo', markersize=2)
+    ax1.plot(masked_a.band, masked_b.band, 'bo', markersize=2)
 
-    f_savefig = x_context + "_" + a.band_name.replace(" ", "-") + "_vs_" + y_context + "_" + b.band_name.replace(" ",
-                                                                                                                 "-") + ".png"
+    f_savefig = x_context + "_" + masked_a.band_name.replace(" ",
+                                                             "-") + "_vs_" + y_context + "_" + masked_b.band_name.replace(
+        " ", "-") + ".png"
 
     plt.savefig(f_savefig, format='png')
     if show == True:
         plt.show()
+
+    return ratio, rmse
 
 
 def single_quicklook(r, g, b):
