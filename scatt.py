@@ -60,6 +60,8 @@ def main():
         print("ERROR: you have a typo in one XML file name, please check")
         sys.exit(1)
 
+
+
     # Load band mask
     edge_a = A.load_band(name="edge_mask").resample(n=scaling_n)
     edge_b = B.load_band(name="edge_mask").resample(n=scaling_n)
