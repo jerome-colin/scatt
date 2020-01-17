@@ -9,7 +9,7 @@ Note: don't mix gdal packages from base and from forge
 """
 __author__ = "Jerome Colin"
 __license__ = "CC BY"
-__version__ = "0.2.1"
+__version__ = "0.3.0"
 
 import datetime
 import glob
@@ -30,7 +30,7 @@ class Aoi:
 
     def __init__(self, x_center, y_center, px_range):
         """
-        Create an Aoi instance
+        Create an Aoi instance from pixel coordinates
         :param x_center: central pixel coordinate along the horizontal
         :param y_center: central pixel coordinate along the vertical
         :param px_range: half-height / half-width range of the square Aoi
@@ -39,6 +39,35 @@ class Aoi:
         self.x_center = x_center
         self.y_center = y_center
         self.px_range = px_range
+
+
+class Context:
+    """
+    Example of possible Yaml context:
+        ---
+        run:
+          ? "context name"
+          : blabla
+          flags:
+            plots: false
+            report: true
+            verbosity: true
+          paths:
+            dtm_path: None
+            root_path: /dev/null
+            water_path: None
+          scale_factors:
+            nodata_aot: -10000
+            scale_f_aot: 200
+            scale_f_sr: 10000
+          subset:
+            lrx: 669240.0
+            lry: 4878660.0
+            ulx: 660240.0
+            uly: 4887660.0
+          type: maja
+
+    """
 
 
 class Image:
@@ -182,6 +211,8 @@ class Image:
 class Run:
     """
     Run object described by an XML context file, storing run attributes and providing a load_band method
+
+    TODO: replace the XML context by a dict, and implement a Yaml parser outside in a Context object
     """
 
     def __init__(self, f_config, verbosity=False):
@@ -427,6 +458,71 @@ class Run:
                 print(e)
                 sys.exit(1)
         return data
+
+
+class Timeseries:
+    """
+    A collection of Run instances
+    """
+    def __init__(self, f_config, verbosity=False):
+        """
+        Initialization of Timeseries
+        :param f_config: XML context file passed as argument runA|runB
+        :param verbosity: increase verbosity to INFO is True
+        """
+        try:
+            self.xml_config = minidom.parse(f_config)
+            self.verbosity = verbosity
+            self.root_path = self.xml_config.getElementsByTagName("root_path")[0].firstChild.nodeValue
+            self.collection_path = self.xml_config.getElementsByTagName("collection_path")[0].firstChild.nodeValue
+            self.type = self.xml_config.getElementsByTagName("type")[0].firstChild.nodeValue
+            self.context = self.xml_config.getElementsByTagName("context")[0].firstChild.nodeValue
+            self.scale_f_aot = float(self.xml_config.getElementsByTagName("scale_f_aot")[0].firstChild.nodeValue)
+            self.scale_f_sr = float(self.xml_config.getElementsByTagName("scale_f_sr")[0].firstChild.nodeValue)
+            self.nodata_aot = float(self.xml_config.getElementsByTagName("nodata_aot")[0].firstChild.nodeValue)
+
+        except IndexError as e:
+            print("ERROR: Mandatory parameter missing in XML file %s" % f_config)
+            print(e)
+            sys.exit(1)
+
+    def generate(self):
+        """
+        Create a collection of XML contexts for a given timeseries collection
+        :return: a collection of files
+        """
+        product_list = self.__get_product_fullpath_list()
+
+        self.__write_collection(product_list)
+
+
+    def __get_product_fullpath_list(self):
+        """
+        Generate a list of products available in root_path
+        :return: a list of files
+        """
+
+        product_list = ""
+
+        return product_list
+
+    def __write_collection(self, product_list):
+        """
+        Produce XML contexts in loop over product list
+        :param product_list:
+        :return: a collection of XML files
+        """
+        for product in product_list:
+            self.__write_run_xml(product)
+
+    def __write_run_xml(self, product):
+        """
+        Write an XML context
+        :param product:
+        :return: an XML context object
+        """
+        pass
+
 
 
 def diffmap(a, b, mode, with_dtm=False):
