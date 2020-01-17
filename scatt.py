@@ -60,6 +60,8 @@ def main():
         print("ERROR: you have a typo in one XML file name, please check")
         sys.exit(1)
 
+
+
     # Load band mask
     edge_a = A.load_band(name="edge_mask").resample(n=scaling_n)
     edge_b = B.load_band(name="edge_mask").resample(n=scaling_n)
@@ -77,8 +79,7 @@ def main():
         common_without_water = common_pure_pixels + water.band
 
     except:
-        print("Unexpected error:", sys.exc_info()[0])
-        raise
+        common_without_water = common_pure_pixels
 
     # Scatterplot of AOT
     aot_a_rs = A.load_band(name="aot").resample(n=scaling_n).get_finite(mask=common_pure_pixels)
