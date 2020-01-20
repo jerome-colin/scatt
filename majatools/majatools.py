@@ -43,7 +43,7 @@ class Aoi:
 
 class Context:
     """Description of a Maja simulation context, Yaml version
-    
+
     """
 
 
