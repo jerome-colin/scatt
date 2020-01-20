@@ -208,6 +208,9 @@ class Run:
             self.scale_f_sr = float(self.xml_config.getElementsByTagName("scale_f_sr")[0].firstChild.nodeValue)
             self.nodata_aot = float(self.xml_config.getElementsByTagName("nodata_aot")[0].firstChild.nodeValue)
 
+            # Fix missing trailing / in path
+            if self.path[-1] != '/':
+                self.path += '/'
 
         except IndexError as e:
             print("ERROR: Mandatory parameter missing in XML file %s" % f_config)
