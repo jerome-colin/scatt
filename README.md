@@ -1,9 +1,6 @@
 # Basic MAJA AOT/SRE outputs analysis toolbox
 
-**Read the doc in: ```<a href="_build/html/index.html">HTML Sphinx</a>```**
-
 MAJA outputs can be either from production C++ version or Python prototype.
-
 
 ## Python environment
 
