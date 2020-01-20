@@ -10,7 +10,7 @@ example:
 
 __author__ = "Jerome Colin"
 __license__ = "CC BY"
-__version__ = "0.1.3"
+__version__ = "0.1.4"
 
 import numpy as np
 import os
@@ -26,6 +26,8 @@ def main():
     parser.add_argument("-v", "--verbose", help="Set verbosity to INFO level", action="store_true")
     parser.add_argument("-r", "--report", help="Get a one line report of cloud free pixels and rmse per band",
                         action="store_true", default=False)
+    parser.add_argument("-p", "--plots", help="Get scatterplots as PNG",
+                        action="store_true", default=False)
     parser.add_argument("-q", "--quicklook", help="Get a png RGB quicklook",
                         action="store_true", default=False)
     parser.add_argument("-s", "--subset", help="Extract AOI subset", action="store_true", default=False)
@@ -39,6 +41,7 @@ def main():
     verbose = args.verbose
     report = args.report
     quicklook = args.quicklook
+    plots = args.plots
 
     try:
         if subset:
@@ -57,7 +60,7 @@ def main():
             print("ERROR: you have a typo in one XML file name, please check")
             sys.exit(1)
 
-        compare(f_run_a, f_run_b, verbose, subset, ulx, uly, lrx, lry, report=report, quicklook=quicklook)
+        compare(f_run_a, f_run_b, verbose, subset, ulx, uly, lrx, lry, report=report, plots=plots, quicklook=quicklook)
 
     except RuntimeError as e:
         print(e)
@@ -66,7 +69,7 @@ def main():
     sys.exit(0)
 
 
-def compare(f_run_a, f_run_b, verbose, subset, ulx, uly, lrx, lry, report=False, quicklook=False):
+def compare(f_run_a, f_run_b, verbose, subset, ulx, uly, lrx, lry, report=False, plots=False, quicklook=False):
     # Creating instance of runs
     run_a = majatools.Run(f_run_a, verbosity=verbose)
     run_b = majatools.Run(f_run_b, verbosity=verbose)
@@ -89,7 +92,7 @@ def compare(f_run_a, f_run_b, verbose, subset, ulx, uly, lrx, lry, report=False,
 
     if quicklook:
         red, green, blue = run_a.get_rgb(subset=subset, ulx=ulx, lry=lry, lrx=lrx, uly=uly)
-        majatools.single_quicklook_rgb(red.band, green.band, blue.band, outfile=run_a.context)
+        majatools.single_quicklook_rgb(red, green, blue, outfile=run_a.context)
 
     # Reporting
     if report:
@@ -101,7 +104,7 @@ def compare(f_run_a, f_run_b, verbose, subset, ulx, uly, lrx, lry, report=False,
 
         cloud_free_ratio, rmse = majatools.single_scatterplot(sre_a_rs, sre_b_rs, common_pure_pixels,
                                                               x_context=run_a.context, y_context=run_b.context,
-                                                              mode="sre", png=False)
+                                                              mode="sre", png=plots)
 
         if report:
             rmses[n] = rmse
