@@ -18,6 +18,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import os
 import re
+from PIL import Image as pillow
 
 from xml.dom import minidom
 from osgeo import gdal
@@ -258,6 +259,22 @@ class Run:
                          scale_f=self.scale_f_sr, verbosity=self.verbosity)
         else:
             return Image(product.GetRasterBand(1).ReadAsArray(), self.type + " " + name, verbosity=self.verbosity)
+
+    def get_rgb(self, subset=False, ulx=0, uly=0, lrx=0, lry=0):
+        """Return B4, B3 and B2 Sentinel 2 SRE bands as a triplet of numpy array for quicklook
+
+        :param subset:
+        :param ulx:
+        :param uly:
+        :param lrx:
+        :param lry:
+        :return: red, green, blue as numpy array
+        """
+        red = self.load_band(name="sreB4", subset=subset, ulx=ulx, lry=lry, lrx=lrx, uly=uly)
+        green = self.load_band(name="sreB3", subset=subset, ulx=ulx, lry=lry, lrx=lrx, uly=uly)
+        blue = self.load_band(name="sreB2", subset=subset, ulx=ulx, lry=lry, lrx=lrx, uly=uly)
+        return red, green, blue
+
 
     def get_timestamp(self):
         """Get the timestamp of a given Run object as a string of format %Y%m%d-%H%M%S"
@@ -679,8 +696,30 @@ def single_scatterplot(a, b, mask, x_context="A", y_context="B", mode='aot', png
     return ratio, rmse
 
 
-def single_quicklook(r, g, b):
-    pass
+def single_quicklook_rgb(r, g, b, outfile="toto.png"):
+    """Generate an RGB quicklook
+
+    :param r: red
+    :param g: green
+    :param b: blue
+    :param outfile: image file, usually the Run.context without extension
+    :return: a PNG file
+    """
+    array_stack = np.dstack((to_uint8(r), to_uint8(g), to_uint8(b)))
+    img = pillow.fromarray(array_stack)
+    if outfile[-4:] != ".png":
+        outfile += ".png"
+
+    img.save(outfile)
+
+
+def to_uint8(band):
+    """Convert a Image.band array to unint8
+    :param band: Image.band array
+    :return: an unint8 numpy array
+    """
+    img = band / np.max(band) * 256
+    return img.astype(np.uint8)
 
 
 def scatterplot(a, b, c, d, \
