@@ -262,26 +262,26 @@ class Run:
         f_img = self.__get_f_img(name=name)
 
         # Extract a Gdal dataset from product file (optionally subset)
-        data = self.__get_gdal_dataset(f_img, subset=subset, ulx=ulx, uly=uly, lrx=lrx, lry=lry)
+        product = get_geodata(f_img, subset=subset, ulx=ulx, uly=uly, lrx=lrx, lry=lry)
 
         if self.verbosity:
             print("INFO: Found file %s" % f_img.split("/")[-1])
 
         # Construct Image instance
         if name == "aot" and self.type == "maja":
-            return Image(data.GetRasterBand(2).ReadAsArray(), self.type + " " + name, \
+            return Image(product.GetRasterBand(2).ReadAsArray(), self.type + " " + name, \
                          scale_f=self.scale_f_aot, verbosity=self.verbosity)
         elif name == "aot" and self.type == "maqt":
-            return Image(data.GetRasterBand(1).ReadAsArray(), self.type + " " + name, \
+            return Image(product.GetRasterBand(1).ReadAsArray(), self.type + " " + name, \
                          scale_f=self.scale_f_aot, verbosity=self.verbosity)
         elif name[:3] == "sre":
-            return Image(data.GetRasterBand(1).ReadAsArray(), self.type + " " + name, \
+            return Image(product.GetRasterBand(1).ReadAsArray(), self.type + " " + name, \
                          scale_f=self.scale_f_sr, verbosity=self.verbosity)
         elif name[:3] == "toa":
-            return Image(data.GetRasterBand(1).ReadAsArray(), self.type + " " + name, \
+            return Image(product.GetRasterBand(1).ReadAsArray(), self.type + " " + name, \
                          scale_f=self.scale_f_sr, verbosity=self.verbosity)
         else:
-            return Image(data.GetRasterBand(1).ReadAsArray(), self.type + " " + name, verbosity=self.verbosity)
+            return Image(product.GetRasterBand(1).ReadAsArray(), self.type + " " + name, verbosity=self.verbosity)
 
     def get_timestamp(self):
         """
@@ -430,6 +430,7 @@ class Run:
 
     def __get_gdal_dataset(self, f_img, subset=False, ulx=0, uly=0, lrx=0, lry=0):
         """
+        DEPRECATED !!!
         Extract a Gdal object from a product file, optionally a subset from coordinates
         :param f_img: product image file
         :param subset: if True use gdal_translate to subset an AOI
@@ -439,6 +440,8 @@ class Run:
         :param lry: lower right y
         :return: a gdal object
         """
+        print('WARNING: Run.__get_gdal_dataset is deprecated"')
+
         try:
             data = gdal.Open(f_img)
         except RuntimeError as e:
@@ -522,6 +525,85 @@ class Timeseries:
         :return: an XML context object
         """
         pass
+
+def atmplot(toa, rse, aot, \
+            title="demo", xt="x", yt="y", \
+            f_savefig="demo.png", mode='cloud_free', show=False):
+    """
+    :param a: sample a, all land and water pixels, numpy array (1D or 2D)
+    :param b: sample b, all land and water pixels, numpy array (1D or 2D)
+    :param c: sample c, only land pixels, numpy array (1D or 2D)
+    :param d: sample d, only land pixels, numpy array (1D or 2D)
+    :param title: string of title
+    :param xt: label of x axis
+    :param yt: label of y axis
+    :param f_savefig: filename to save the figure to
+    :param mode: defines axis range, defaults to 'aot'
+    :param show: showing plot, defaults to False
+    :return:
+    """
+    # slope_all, intercept_all, r_value_all, p_value_all, std_err_all = stats.linregress(a, b)
+    # slope_ground, intercept_ground, r_value_ground, p_value_ground, std_err_ground = stats.linregress(c, d)
+
+    fig, ax1 = plt.subplots(1, 1, figsize=(6, 6))
+
+    if mode == "cloud_free":
+        ax1.set_title("SRE=f(TOA), cloud-free pixels")
+    else:
+        ax1.set_title("SRE=f(TOA)")
+
+    max_range = max([aot.max(), rse.max()])
+    ax1.plot([0.0, max_range], [0.0, max_range], 'k--')
+
+    ax1.set_aspect('equal', 'box')
+    ax1.set_xlabel(xt)
+    ax1.set_ylabel(yt)
+
+    print("INFO: min AOT=%6.4f, max AOT=%6.4f" % (aot.min(), aot.max()))
+
+    aot_step = 0.2
+    for aot_r in np.arange(0, aot.max(), aot_step):
+        aot_s = np.where(np.logical_and(aot >= aot_r, aot < aot_r + aot_step))
+        lbl = ("AOT[%4.2f-%4.2f]" % (aot_r, aot_r + aot_step))
+        ax1.plot(toa[aot_s], rse[aot_s], '.', markersize=4, label=lbl)
+        ax1.legend(loc='upper right')
+
+    plt.savefig(f_savefig, format='png')
+    if show == True:
+        plt.show()
+
+
+def get_geodata(f_img, subset=False, ulx=0, uly=0, lrx=0, lry=0):
+    """
+    Extract a Gdal object from a product file, optionally a subset from coordinates
+    :param f_img: product image file
+    :param subset: if True use gdal_translate to subset an AOI
+    :param ulx: upper left x
+    :param uly: upper left y
+    :param lrx: lower right x
+    :param lry: lower right y
+    :return: a gdal object
+    """
+    try:
+        data = gdal.Open(f_img)
+    except RuntimeError as e:
+        print('ERROR: Unable to open ' + f_img)
+        print(e)
+        sys.exit(1)
+
+    if subset:
+        try:
+            translate = 'gdal_translate -projwin %s %s %s %s %s %s' % (ulx, uly, lrx, lry, f_img, ".tmp.tif")
+            os.system(translate)
+            data = gdal.Open(".tmp.tif")
+            os.remove(".tmp.tif")
+
+        except RuntimeError as e:
+            print('ERROR: Unable to open ' + f_img)
+            print(e)
+            sys.exit(1)
+
+    return data
 
 
 
@@ -683,48 +765,3 @@ def scatterplot(a, b, c, d, \
         plt.show()
 
 
-def atmplot(toa, rse, aot, \
-            title="demo", xt="x", yt="y", \
-            f_savefig="demo.png", mode='cloud_free', show=False):
-    """
-    :param a: sample a, all land and water pixels, numpy array (1D or 2D)
-    :param b: sample b, all land and water pixels, numpy array (1D or 2D)
-    :param c: sample c, only land pixels, numpy array (1D or 2D)
-    :param d: sample d, only land pixels, numpy array (1D or 2D)
-    :param title: string of title
-    :param xt: label of x axis
-    :param yt: label of y axis
-    :param f_savefig: filename to save the figure to
-    :param mode: defines axis range, defaults to 'aot'
-    :param show: showing plot, defaults to False
-    :return:
-    """
-    # slope_all, intercept_all, r_value_all, p_value_all, std_err_all = stats.linregress(a, b)
-    # slope_ground, intercept_ground, r_value_ground, p_value_ground, std_err_ground = stats.linregress(c, d)
-
-    fig, ax1 = plt.subplots(1, 1, figsize=(6, 6))
-
-    if mode == "cloud_free":
-        ax1.set_title("SRE=f(TOA), cloud-free pixels")
-    else:
-        ax1.set_title("SRE=f(TOA)")
-
-    max_range = max([aot.max(), rse.max()])
-    ax1.plot([0.0, max_range], [0.0, max_range], 'k--')
-
-    ax1.set_aspect('equal', 'box')
-    ax1.set_xlabel(xt)
-    ax1.set_ylabel(yt)
-
-    print("INFO: min AOT=%6.4f, max AOT=%6.4f" % (aot.min(), aot.max()))
-
-    aot_step = 0.2
-    for aot_r in np.arange(0, aot.max(), aot_step):
-        aot_s = np.where(np.logical_and(aot >= aot_r, aot < aot_r + aot_step))
-        lbl = ("AOT[%4.2f-%4.2f]" % (aot_r, aot_r + aot_step))
-        ax1.plot(toa[aot_s], rse[aot_s], '.', markersize=4, label=lbl)
-        ax1.legend(loc='upper right')
-
-    plt.savefig(f_savefig, format='png')
-    if show == True:
-        plt.show()
