@@ -9,7 +9,7 @@ Note: don't mix gdal packages from base and from forge
 """
 __author__ = "Jerome Colin"
 __license__ = "CC BY"
-__version__ = "0.3.1"
+__version__ = "0.3.2"
 
 import datetime
 import glob
@@ -178,12 +178,20 @@ class Image:
             search = np.where(mask.band != 0)
             self.band[search] = np.NaN
 
+    def get_band_uint8(self):
+        """Convert a Image.band array to unint8
+        :return: an unint8 numpy array
+        """
+        img = self.band / np.max(self.band) * 256
+        return img.astype(np.uint8)
+
     def get_pixel_count(self):
         x, y = self.__get_band_size()
         if y != 0:
             return x * y
         else:
             return x
+
 
 
 class Run:
@@ -702,27 +710,18 @@ def single_scatterplot(a, b, mask, x_context="A", y_context="B", mode='aot', png
 def single_quicklook_rgb(r, g, b, outfile="toto.png"):
     """Generate an RGB quicklook
 
-    :param r: red
-    :param g: green
-    :param b: blue
+    :param r: red Image
+    :param g: green Image
+    :param b: blue Image
     :param outfile: image file, usually the Run.context without extension
     :return: a PNG file
     """
-    array_stack = np.dstack((to_uint8(r), to_uint8(g), to_uint8(b)))
+    array_stack = np.dstack((r.get_band_uint8(),g.get_band_uint8(),b.get_band_uint8()))
     img = pillow.fromarray(array_stack)
     if outfile[-4:] != ".png":
         outfile += ".png"
 
     img.save(outfile)
-
-
-def to_uint8(band):
-    """Convert a Image.band array to unint8
-    :param band: Image.band array
-    :return: an unint8 numpy array
-    """
-    img = band / np.max(band) * 256
-    return img.astype(np.uint8)
 
 
 def scatterplot(a, b, c, d, \
