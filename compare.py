@@ -5,7 +5,7 @@ Compare two runs pixel by pixel on a defined ROI
 python compare.py --help
 
 example:
-  compare.py MAJA_20180415_NOENV.xml MAJA_20180415_ENV.xml -v -s --ulx 660240.0 --lry 4878660.0 --lrx 669240.0 --uly 4887660.0 --report
+  compare.py MAJA_20180415_NOENV.xml MAJA_20180415_ENV.xml -v -q -s --ulx 660240.0 --lry 4878660.0 --lrx 669240.0 --uly 4887660.0 --report
 """
 
 __author__ = "Jerome Colin"
@@ -26,6 +26,8 @@ def main():
     parser.add_argument("-v", "--verbose", help="Set verbosity to INFO level", action="store_true")
     parser.add_argument("-r", "--report", help="Get a one line report of cloud free pixels and rmse per band",
                         action="store_true", default=False)
+    parser.add_argument("-q", "--quicklook", help="Get a png RGB quicklook",
+                        action="store_true", default=False)
     parser.add_argument("-s", "--subset", help="Extract AOI subset", action="store_true", default=False)
     parser.add_argument("--ulx", type=float, help="AOI upper left longitude")
     parser.add_argument("--uly", type=float, help="AOI upper left latitude")
@@ -36,6 +38,7 @@ def main():
     subset = args.subset
     verbose = args.verbose
     report = args.report
+    quicklook = args.quicklook
 
     try:
         if subset:
@@ -54,7 +57,7 @@ def main():
             print("ERROR: you have a typo in one XML file name, please check")
             sys.exit(1)
 
-        compare(f_run_a, f_run_b, verbose, subset, ulx, uly, lrx, lry, report=report)
+        compare(f_run_a, f_run_b, verbose, subset, ulx, uly, lrx, lry, report=report, quicklook=quicklook)
 
     except RuntimeError as e:
         print(e)
@@ -63,7 +66,7 @@ def main():
     sys.exit(0)
 
 
-def compare(f_run_a, f_run_b, verbose, subset, ulx, uly, lrx, lry, report=False):
+def compare(f_run_a, f_run_b, verbose, subset, ulx, uly, lrx, lry, report=False, quicklook=False):
     # Creating instance of runs
     run_a = majatools.Run(f_run_a, verbosity=verbose)
     run_b = majatools.Run(f_run_b, verbosity=verbose)
@@ -83,6 +86,10 @@ def compare(f_run_a, f_run_b, verbose, subset, ulx, uly, lrx, lry, report=False)
 
     # Bands
     s2bands = ["B2", "B3", "B4", "B8"]
+
+    if quicklook:
+        red, green, blue = run_a.get_rgb(subset=subset, ulx=ulx, lry=lry, lrx=lrx, uly=uly)
+        majatools.single_quicklook_rgb(red.band, green.band, blue.band, outfile=run_a.context)
 
     # Reporting
     if report:
