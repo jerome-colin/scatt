@@ -9,7 +9,7 @@ Note: don't mix gdal packages from base and from forge
 """
 __author__ = "Jerome Colin"
 __license__ = "CC BY"
-__version__ = "0.3.0"
+__version__ = "0.3.1"
 
 import datetime
 import glob
@@ -634,7 +634,7 @@ def diffmap(a, b, mode, with_dtm=False):
     plt.savefig("Diffmap_%s_%s-%s_%s.png" % (a.context, a.type, b.context, b.type))
 
 
-def single_scatterplot(a, b, mask, x_context="A", y_context="B", mode='aot', show=False):
+def single_scatterplot(a, b, mask, x_context="A", y_context="B", mode='aot', png=False):
     """
     :param a: sample a, all land and water pixels, numpy array (1D or 2D)
     :param b: sample b, all land and water pixels, numpy array (1D or 2D)
@@ -670,13 +670,11 @@ def single_scatterplot(a, b, mask, x_context="A", y_context="B", mode='aot', sho
     ax1.set_ylabel(y_context + " " + b.band_name)
     ax1.plot(masked_a.band, masked_b.band, 'bo', markersize=2)
 
-    f_savefig = x_context + "_" + masked_a.band_name.replace(" ",
-                                                             "-") + "_vs_" + y_context + "_" + masked_b.band_name.replace(
-        " ", "-") + ".png"
-
-    plt.savefig(f_savefig, format='png')
-    if show == True:
-        plt.show()
+    if png == True:
+        f_savefig = x_context + "_" + masked_a.band_name.replace(" ",
+                                                                 "-") + "_vs_" + y_context + "_" + masked_b.band_name.replace(
+            " ", "-") + ".png"
+        plt.savefig(f_savefig, format='png')
 
     return ratio, rmse
 
