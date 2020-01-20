@@ -9,7 +9,7 @@ Note: don't mix gdal packages from base and from forge
 """
 __author__ = "Jerome Colin"
 __license__ = "CC BY"
-__version__ = "0.2.1"
+__version__ = "0.3.0"
 
 import datetime
 import glob
@@ -29,8 +29,8 @@ class Aoi:
     """
 
     def __init__(self, x_center, y_center, px_range):
-        """
-        Create an Aoi instance
+        """Create an Aoi instance from pixel coordinates
+
         :param x_center: central pixel coordinate along the horizontal
         :param y_center: central pixel coordinate along the vertical
         :param px_range: half-height / half-width range of the square Aoi
@@ -41,14 +41,20 @@ class Aoi:
         self.px_range = px_range
 
 
+class Context:
+    """Description of a Maja simulation context, Yaml version
+
+    """
+
+
 class Image:
     """
     Extends a numpy array with attributes from Run, adds specifics methods
     """
 
     def __init__(self, band, band_name, scale_f=1, nodata=-10000, verbosity=False):
-        """
-        Initialization of Image
+        """Initialization of Image
+
         :param band: numpy array
         :param band_name: string name of the band
         :param scale_f: if any, scale factor of the variable in band
@@ -82,8 +88,8 @@ class Image:
         return Image(np.extract(np.isfinite(self.band), self.band), self.band_name, verbosity=self.verbosity)
 
     def resample(self, n=6):
-        """
-        Downscaling method
+        """Downscaling method
+
         :param n: resampling factor
         :return: a resampled Image object, or self if n = 1
         """
@@ -111,16 +117,16 @@ class Image:
             return Image(subset, self.band_name + " resampled", verbosity=self.verbosity)
 
     def subset_aoi(self, aoi):
-        """
-        Extract square image subset by pixel coordinates
+        """Extract square image subset by pixel coordinates
+
         :param aoi: aoi instance
         :return: an Image instance
         """
         return Image(self.__crop_band_by_aoi(aoi), self.band_name, scale_f=1, nodata=self.nodata)
 
     def __check_is_inside(self, aoi):
-        """
-        Returns True if an AOI is within the extent of an image
+        """Returns True if an AOI is within the extent of an image
+
         :param aoi:
         :return: Boolean
         """
@@ -139,8 +145,8 @@ class Image:
         return True
 
     def __crop_band_by_aoi(self, aoi):
-        """
-        Crops an Image band according to AOI extent
+        """Crops an Image band according to AOI extent
+
         :param aoi: an Aoi instance
         :return: an array
         """
@@ -149,8 +155,8 @@ class Image:
                    aoi.x_center - aoi.px_range:aoi.x_center + aoi.px_range]
 
     def __get_band_size(self):
-        """
-        Private, returns band dimensions
+        """Private, returns band dimensions
+
         :return: a tuple of int
         """
         try:
@@ -160,8 +166,8 @@ class Image:
             return len(self.band), 0
 
     def apply_mask(self, mask, reverse=False):
-        """
-        Apply a given mask to self, replacing non-zeros by NaN
+        """Apply a given mask to self, replacing non-zeros by NaN
+
         :param mask:
         """
         if reverse:
@@ -182,11 +188,13 @@ class Image:
 class Run:
     """
     Run object described by an XML context file, storing run attributes and providing a load_band method
+
+    TODO: replace the XML context by a dict, and implement a Yaml parser outside in a Context object
     """
 
     def __init__(self, f_config, verbosity=False):
-        """
-        Initialization of Run
+        """Initialization of Run
+
         :param f_config: XML context file passed as argument runA|runB
         :param verbosity: increase verbosity to INFO is True
         """
@@ -215,8 +223,7 @@ class Run:
             pass
 
     def load_band(self, name="aot", subset=False, ulx=0, uly=0, lrx=0, lry=0):
-        """
-        Get a given image output of Run, optionally a subset by coordinates
+        """Get a given image output of Run, optionally a subset by coordinates
 
         :param name: any string between "aot", "cloud_mask", "edge_mask"
         :param subset: if True use gdal_translate to subset an AOI
@@ -231,30 +238,30 @@ class Run:
         f_img = self.__get_f_img(name=name)
 
         # Extract a Gdal dataset from product file (optionally subset)
-        data = self.__get_gdal_dataset(f_img, subset=subset, ulx=ulx, uly=uly, lrx=lrx, lry=lry)
+        product = get_geodata(f_img, subset=subset, ulx=ulx, uly=uly, lrx=lrx, lry=lry)
 
         if self.verbosity:
             print("INFO: Found file %s" % f_img.split("/")[-1])
 
         # Construct Image instance
         if name == "aot" and self.type == "maja":
-            return Image(data.GetRasterBand(2).ReadAsArray(), self.type + " " + name, \
+            return Image(product.GetRasterBand(2).ReadAsArray(), self.type + " " + name, \
                          scale_f=self.scale_f_aot, verbosity=self.verbosity)
         elif name == "aot" and self.type == "maqt":
-            return Image(data.GetRasterBand(1).ReadAsArray(), self.type + " " + name, \
+            return Image(product.GetRasterBand(1).ReadAsArray(), self.type + " " + name, \
                          scale_f=self.scale_f_aot, verbosity=self.verbosity)
         elif name[:3] == "sre":
-            return Image(data.GetRasterBand(1).ReadAsArray(), self.type + " " + name, \
+            return Image(product.GetRasterBand(1).ReadAsArray(), self.type + " " + name, \
                          scale_f=self.scale_f_sr, verbosity=self.verbosity)
         elif name[:3] == "toa":
-            return Image(data.GetRasterBand(1).ReadAsArray(), self.type + " " + name, \
+            return Image(product.GetRasterBand(1).ReadAsArray(), self.type + " " + name, \
                          scale_f=self.scale_f_sr, verbosity=self.verbosity)
         else:
-            return Image(data.GetRasterBand(1).ReadAsArray(), self.type + " " + name, verbosity=self.verbosity)
+            return Image(product.GetRasterBand(1).ReadAsArray(), self.type + " " + name, verbosity=self.verbosity)
 
     def get_timestamp(self):
-        """
-        Get the timestamp of a given Run object as a string of format %Y%m%d-%H%M%S"
+        """Get the timestamp of a given Run object as a string of format %Y%m%d-%H%M%S"
+
         :return: a string
         """
         if self.type == "maja":
@@ -269,15 +276,15 @@ class Run:
             pass
 
     def get_type(self):
-        """
-        Return Run type
+        """Return Run type
+
         :return: string of type of the run, typically "maja" or "maqt"
         """
         return self.type
 
     def __get_f_img(self, name):
-        """
-        Finds the actual file that relates to a variable name for a given product collection
+        """Finds the actual file that relates to a variable name for a given product collection
+
         :param name: variable name
         :return: a file name
         """
@@ -398,8 +405,8 @@ class Run:
         return f_img
 
     def __get_gdal_dataset(self, f_img, subset=False, ulx=0, uly=0, lrx=0, lry=0):
-        """
-        Extract a Gdal object from a product file, optionally a subset from coordinates
+        """[DEPRECATED] Extract a Gdal object from a product file, optionally a subset from coordinates
+
         :param f_img: product image file
         :param subset: if True use gdal_translate to subset an AOI
         :param ulx: upper left x
@@ -408,6 +415,8 @@ class Run:
         :param lry: lower right y
         :return: a gdal object
         """
+        print('WARNING: Run.__get_gdal_dataset is deprecated"')
+
         try:
             data = gdal.Open(f_img)
         except RuntimeError as e:
@@ -429,9 +438,153 @@ class Run:
         return data
 
 
-def diffmap(a, b, mode, with_dtm=False):
+class Timeseries:
     """
-    Produce an absolute difference map as image
+    A collection of Run instances
+    """
+    def __init__(self, f_config, verbosity=False):
+        """Initialization of Timeseries
+
+        :param f_config: XML context file passed as argument runA|runB
+        :param verbosity: increase verbosity to INFO is True
+        """
+        try:
+            self.xml_config = minidom.parse(f_config)
+            self.verbosity = verbosity
+            self.root_path = self.xml_config.getElementsByTagName("root_path")[0].firstChild.nodeValue
+            self.collection_path = self.xml_config.getElementsByTagName("collection_path")[0].firstChild.nodeValue
+            self.type = self.xml_config.getElementsByTagName("type")[0].firstChild.nodeValue
+            self.context = self.xml_config.getElementsByTagName("context")[0].firstChild.nodeValue
+            self.scale_f_aot = float(self.xml_config.getElementsByTagName("scale_f_aot")[0].firstChild.nodeValue)
+            self.scale_f_sr = float(self.xml_config.getElementsByTagName("scale_f_sr")[0].firstChild.nodeValue)
+            self.nodata_aot = float(self.xml_config.getElementsByTagName("nodata_aot")[0].firstChild.nodeValue)
+
+        except IndexError as e:
+            print("ERROR: Mandatory parameter missing in XML file %s" % f_config)
+            print(e)
+            sys.exit(1)
+
+    def generate(self):
+        """Create a collection of XML contexts for a given timeseries collection
+
+        :return: a collection of files
+        """
+        product_list = self.__get_product_fullpath_list()
+
+        self.__write_collection(product_list)
+
+
+    def __get_product_fullpath_list(self):
+        """Generate a list of products available in root_path
+
+        :return: a list of files
+        """
+
+        product_list = ""
+
+        return product_list
+
+    def __write_collection(self, product_list):
+        """Produce XML contexts in loop over product list
+
+        :param product_list:
+        :return: a collection of XML files
+        """
+        for product in product_list:
+            self.__write_run_xml(product)
+
+    def __write_run_xml(self, product):
+        """
+        Write an XML context
+        :param product:
+        :return: an XML context object
+        """
+        pass
+
+def atmplot(toa, rse, aot, \
+            title="demo", xt="x", yt="y", \
+            f_savefig="demo.png", mode='cloud_free', show=False):
+    """
+    :param a: sample a, all land and water pixels, numpy array (1D or 2D)
+    :param b: sample b, all land and water pixels, numpy array (1D or 2D)
+    :param c: sample c, only land pixels, numpy array (1D or 2D)
+    :param d: sample d, only land pixels, numpy array (1D or 2D)
+    :param title: string of title
+    :param xt: label of x axis
+    :param yt: label of y axis
+    :param f_savefig: filename to save the figure to
+    :param mode: defines axis range, defaults to 'aot'
+    :param show: showing plot, defaults to False
+    :return:
+    """
+    # slope_all, intercept_all, r_value_all, p_value_all, std_err_all = stats.linregress(a, b)
+    # slope_ground, intercept_ground, r_value_ground, p_value_ground, std_err_ground = stats.linregress(c, d)
+
+    fig, ax1 = plt.subplots(1, 1, figsize=(6, 6))
+
+    if mode == "cloud_free":
+        ax1.set_title("SRE=f(TOA), cloud-free pixels")
+    else:
+        ax1.set_title("SRE=f(TOA)")
+
+    max_range = max([aot.max(), rse.max()])
+    ax1.plot([0.0, max_range], [0.0, max_range], 'k--')
+
+    ax1.set_aspect('equal', 'box')
+    ax1.set_xlabel(xt)
+    ax1.set_ylabel(yt)
+
+    print("INFO: min AOT=%6.4f, max AOT=%6.4f" % (aot.min(), aot.max()))
+
+    aot_step = 0.2
+    for aot_r in np.arange(0, aot.max(), aot_step):
+        aot_s = np.where(np.logical_and(aot >= aot_r, aot < aot_r + aot_step))
+        lbl = ("AOT[%4.2f-%4.2f]" % (aot_r, aot_r + aot_step))
+        ax1.plot(toa[aot_s], rse[aot_s], '.', markersize=4, label=lbl)
+        ax1.legend(loc='upper right')
+
+    plt.savefig(f_savefig, format='png')
+    if show == True:
+        plt.show()
+
+
+def get_geodata(f_img, subset=False, ulx=0, uly=0, lrx=0, lry=0):
+    """Extract a Gdal object from a product file, optionally a subset from coordinates
+
+    :param f_img: product image file
+    :param subset: if True use gdal_translate to subset an AOI
+    :param ulx: upper left x
+    :param uly: upper left y
+    :param lrx: lower right x
+    :param lry: lower right y
+    :return: a gdal object
+    """
+    try:
+        data = gdal.Open(f_img)
+    except RuntimeError as e:
+        print('ERROR: Unable to open ' + f_img)
+        print(e)
+        sys.exit(1)
+
+    if subset:
+        try:
+            translate = 'gdal_translate -projwin %s %s %s %s %s %s' % (ulx, uly, lrx, lry, f_img, ".tmp.tif")
+            os.system(translate)
+            data = gdal.Open(".tmp.tif")
+            os.remove(".tmp.tif")
+
+        except RuntimeError as e:
+            print('ERROR: Unable to open ' + f_img)
+            print(e)
+            sys.exit(1)
+
+    return data
+
+
+
+def diffmap(a, b, mode, with_dtm=False):
+    """Produce an absolute difference map as image
+
     :param a: a numpy 2D array
     :param b: b numpy 2D array
     :param mode: either "aot" or "sreXX" where XX refers to a band (eg. B3)
@@ -587,48 +740,3 @@ def scatterplot(a, b, c, d, \
         plt.show()
 
 
-def atmplot(toa, rse, aot, \
-            title="demo", xt="x", yt="y", \
-            f_savefig="demo.png", mode='cloud_free', show=False):
-    """
-    :param a: sample a, all land and water pixels, numpy array (1D or 2D)
-    :param b: sample b, all land and water pixels, numpy array (1D or 2D)
-    :param c: sample c, only land pixels, numpy array (1D or 2D)
-    :param d: sample d, only land pixels, numpy array (1D or 2D)
-    :param title: string of title
-    :param xt: label of x axis
-    :param yt: label of y axis
-    :param f_savefig: filename to save the figure to
-    :param mode: defines axis range, defaults to 'aot'
-    :param show: showing plot, defaults to False
-    :return:
-    """
-    # slope_all, intercept_all, r_value_all, p_value_all, std_err_all = stats.linregress(a, b)
-    # slope_ground, intercept_ground, r_value_ground, p_value_ground, std_err_ground = stats.linregress(c, d)
-
-    fig, ax1 = plt.subplots(1, 1, figsize=(6, 6))
-
-    if mode == "cloud_free":
-        ax1.set_title("SRE=f(TOA), cloud-free pixels")
-    else:
-        ax1.set_title("SRE=f(TOA)")
-
-    max_range = max([aot.max(), rse.max()])
-    ax1.plot([0.0, max_range], [0.0, max_range], 'k--')
-
-    ax1.set_aspect('equal', 'box')
-    ax1.set_xlabel(xt)
-    ax1.set_ylabel(yt)
-
-    print("INFO: min AOT=%6.4f, max AOT=%6.4f" % (aot.min(), aot.max()))
-
-    aot_step = 0.2
-    for aot_r in np.arange(0, aot.max(), aot_step):
-        aot_s = np.where(np.logical_and(aot >= aot_r, aot < aot_r + aot_step))
-        lbl = ("AOT[%4.2f-%4.2f]" % (aot_r, aot_r + aot_step))
-        ax1.plot(toa[aot_s], rse[aot_s], '.', markersize=4, label=lbl)
-        ax1.legend(loc='upper right')
-
-    plt.savefig(f_savefig, format='png')
-    if show == True:
-        plt.show()
