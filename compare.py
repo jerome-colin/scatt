@@ -3,6 +3,9 @@
 Compare two runs pixel by pixel on a defined ROI
 
 python compare.py --help
+
+example:
+  compare.py MAJA_20180415_NOENV.xml MAJA_20180415_ENV.xml -v -s --ulx 660240.0 --lry 4878660.0 --lrx 669240.0 --uly 4887660.0 --report
 """
 
 __author__ = "Jerome Colin"
@@ -91,7 +94,7 @@ def compare(f_run_a, f_run_b, verbose, subset, ulx, uly, lrx, lry, report=False)
 
         cloud_free_ratio, rmse = majatools.single_scatterplot(sre_a_rs, sre_b_rs, common_pure_pixels,
                                                               x_context=run_a.context, y_context=run_b.context,
-                                                              mode="sre")
+                                                              mode="sre", png=False)
 
         if report:
             rmses[n] = rmse
