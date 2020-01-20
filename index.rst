@@ -32,9 +32,14 @@ Majatools PACKAGE
 Classes
 -------
 
-Run
+Aoi
 +++
-.. autoclass:: majatools.majatools.Run
+.. autoclass:: majatools.majatools.Aoi
+    :members:
+
+Context
++++++++
+.. autoclass:: majatools.majatools.Context
     :members:
 
 Image
@@ -42,14 +47,38 @@ Image
 .. autoclass:: majatools.majatools.Image
     :members:
 
+Run
++++
+.. autoclass:: majatools.majatools.Run
+    :members:
+
+Timeseries
+++++++++++
+.. autoclass:: majatools.majatools.Timeseries
+    :members:
+
 Modules
 -------
+
+diffmap
++++++++
+.. automodule:: majatools.majatools.diffmap
+    :members:
+
+get_geodata
++++++++++++
+.. automodule:: majatools.majatools.get_geodata
+    :members:
 
 scatterplot
 +++++++++++
 .. automodule:: majatools.majatools.scatterplot
     :members:
 
+single_scatterplot
+++++++++++++++++++
+.. automodule:: majatools.majatools.single_scatterplot
+    :members:
 
 Indices and tables
 ==================

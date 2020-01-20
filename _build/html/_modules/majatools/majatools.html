@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>majatools.majatools &mdash; scatt 0.1.1 documentation</title>
+  <title>majatools.majatools &mdash; scatt 0.1.2 documentation</title>
   
 
   
@@ -152,110 +152,52 @@
 <span class="sd">&quot;&quot;&quot;</span>
 <span class="n">__author__</span> <span class="o">=</span> <span class="s2">&quot;Jerome Colin&quot;</span>
 <span class="n">__license__</span> <span class="o">=</span> <span class="s2">&quot;CC BY&quot;</span>
-<span class="n">__version__</span> <span class="o">=</span> <span class="s2">&quot;0.1.1&quot;</span>
+<span class="n">__version__</span> <span class="o">=</span> <span class="s2">&quot;0.3.0&quot;</span>
 
+<span class="kn">import</span> <span class="nn">datetime</span>
 <span class="kn">import</span> <span class="nn">glob</span>
 <span class="kn">import</span> <span class="nn">sys</span>
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
 <span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">re</span>
 
-<span class="kn">from</span> <span class="nn">scipy</span> <span class="k">import</span> <span class="n">stats</span>
-<span class="kn">from</span> <span class="nn">xml.dom</span> <span class="k">import</span> <span class="n">minidom</span>
-<span class="kn">from</span> <span class="nn">osgeo</span> <span class="k">import</span> <span class="n">gdal</span>
+<span class="kn">from</span> <span class="nn">xml.dom</span> <span class="kn">import</span> <span class="n">minidom</span>
+<span class="kn">from</span> <span class="nn">osgeo</span> <span class="kn">import</span> <span class="n">gdal</span>
 
 
-<div class="viewcode-block" id="Run"><a class="viewcode-back" href="../../index.html#majatools.majatools.Run">[docs]</a><span class="k">class</span> <span class="nc">Run</span><span class="p">:</span>
+<div class="viewcode-block" id="Aoi"><a class="viewcode-back" href="../../index.html#majatools.majatools.Aoi">[docs]</a><span class="k">class</span> <span class="nc">Aoi</span><span class="p">:</span>
     <span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Run object described by an XML context file, storing run attributes and providing an load_band method</span>
+<span class="sd">    Area of interest</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">f_config</span><span class="p">,</span> <span class="n">verbosity</span> <span class="o">=</span> <span class="kc">False</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">        Initialization of Run</span>
-<span class="sd">        :param f_config: XML context file passed as argument runA|runB</span>
-<span class="sd">        :param verbosity: increase verbosity to INFO is True</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x_center</span><span class="p">,</span> <span class="n">y_center</span><span class="p">,</span> <span class="n">px_range</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Create an Aoi instance from pixel coordinates</span>
+
+<span class="sd">        :param x_center: central pixel coordinate along the horizontal</span>
+<span class="sd">        :param y_center: central pixel coordinate along the vertical</span>
+<span class="sd">        :param px_range: half-height / half-width range of the square Aoi</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">try</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">xml_config</span> <span class="o">=</span> <span class="n">minidom</span><span class="o">.</span><span class="n">parse</span><span class="p">(</span><span class="n">f_config</span><span class="p">)</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">verbosity</span> <span class="o">=</span> <span class="n">verbosity</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">path</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">xml_config</span><span class="o">.</span><span class="n">getElementsByTagName</span><span class="p">(</span><span class="s2">&quot;path&quot;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">firstChild</span><span class="o">.</span><span class="n">nodeValue</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">type</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">xml_config</span><span class="o">.</span><span class="n">getElementsByTagName</span><span class="p">(</span><span class="s2">&quot;type&quot;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">firstChild</span><span class="o">.</span><span class="n">nodeValue</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">context</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">xml_config</span><span class="o">.</span><span class="n">getElementsByTagName</span><span class="p">(</span><span class="s2">&quot;context&quot;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">firstChild</span><span class="o">.</span><span class="n">nodeValue</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">scale_f_aot</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">xml_config</span><span class="o">.</span><span class="n">getElementsByTagName</span><span class="p">(</span><span class="s2">&quot;scale_f_aot&quot;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">firstChild</span><span class="o">.</span><span class="n">nodeValue</span><span class="p">)</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">scale_f_sr</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">xml_config</span><span class="o">.</span><span class="n">getElementsByTagName</span><span class="p">(</span><span class="s2">&quot;scale_f_sr&quot;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">firstChild</span><span class="o">.</span><span class="n">nodeValue</span><span class="p">)</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">nodata_aot</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">xml_config</span><span class="o">.</span><span class="n">getElementsByTagName</span><span class="p">(</span><span class="s2">&quot;nodata_aot&quot;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">firstChild</span><span class="o">.</span><span class="n">nodeValue</span><span class="p">)</span>
 
-        <span class="k">except</span> <span class="ne">IndexError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
-            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;ERROR: Missing parameter in XML file </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">f_config</span><span class="p">)</span>
-            <span class="nb">print</span><span class="p">(</span><span class="n">e</span><span class="p">)</span>
-            <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">x_center</span> <span class="o">=</span> <span class="n">x_center</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">y_center</span> <span class="o">=</span> <span class="n">y_center</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">px_range</span> <span class="o">=</span> <span class="n">px_range</span></div>
 
-<div class="viewcode-block" id="Run.get_type"><a class="viewcode-back" href="../../index.html#majatools.majatools.Run.get_type">[docs]</a>    <span class="k">def</span> <span class="nf">get_type</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">        Return Run type</span>
-<span class="sd">        :return: string of type of the run, typically &quot;maja&quot; or &quot;maqt&quot;</span>
-<span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">type</span></div>
 
-<div class="viewcode-block" id="Run.load_band"><a class="viewcode-back" href="../../index.html#majatools.majatools.Run.load_band">[docs]</a>    <span class="k">def</span> <span class="nf">load_band</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;aot&quot;</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">        Get a given image output of Run</span>
-<span class="sd">        :param name: any string between &quot;aot&quot;, &quot;cloud_mask&quot;, &quot;edge_mask&quot;</span>
-<span class="sd">        :return: an Image object of the related band name</span>
-<span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">if</span> <span class="n">name</span> <span class="o">==</span> <span class="s2">&quot;aot&quot;</span><span class="p">:</span>
-            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">type</span> <span class="o">==</span> <span class="s2">&quot;maja&quot;</span><span class="p">:</span>
-                <span class="n">f_img</span> <span class="o">=</span> <span class="n">glob</span><span class="o">.</span><span class="n">glob</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">path</span> <span class="o">+</span> <span class="s2">&quot;*ATB_R1*&quot;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
-            <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">type</span> <span class="o">==</span> <span class="s2">&quot;maqt&quot;</span><span class="p">:</span>
-                <span class="n">f_img</span> <span class="o">=</span> <span class="n">glob</span><span class="o">.</span><span class="n">glob</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">path</span> <span class="o">+</span> <span class="s2">&quot;ORTHO_SURF_AOT/*10m.tau2&quot;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
-            <span class="k">else</span><span class="p">:</span>
-                <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;ERROR: Unable to find aot product...&quot;</span><span class="p">)</span>
-                <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
-
-        <span class="k">if</span> <span class="n">name</span> <span class="o">==</span> <span class="s2">&quot;cloud_mask&quot;</span><span class="p">:</span>
-            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">type</span> <span class="o">==</span> <span class="s2">&quot;maja&quot;</span><span class="p">:</span>
-                <span class="n">f_img</span> <span class="o">=</span> <span class="n">glob</span><span class="o">.</span><span class="n">glob</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">path</span> <span class="o">+</span> <span class="s2">&quot;MASKS/*CLM_R1.tif&quot;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
-            <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">type</span> <span class="o">==</span> <span class="s2">&quot;maqt&quot;</span><span class="p">:</span>
-                <span class="n">f_img</span> <span class="o">=</span> <span class="n">glob</span><span class="o">.</span><span class="n">glob</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">path</span> <span class="o">+</span> <span class="s2">&quot;MASQUES/NUAGES/*_10m.nua&quot;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
-            <span class="k">else</span><span class="p">:</span>
-                <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;ERROR: Unable to find aot product...&quot;</span><span class="p">)</span>
-                <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
-
-        <span class="k">if</span> <span class="n">name</span> <span class="o">==</span> <span class="s2">&quot;edge_mask&quot;</span><span class="p">:</span>
-            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">type</span> <span class="o">==</span> <span class="s2">&quot;maja&quot;</span><span class="p">:</span>
-                <span class="n">f_img</span> <span class="o">=</span> <span class="n">glob</span><span class="o">.</span><span class="n">glob</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">path</span> <span class="o">+</span> <span class="s2">&quot;MASKS/*_EDG_R1.tif&quot;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
-            <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">type</span> <span class="o">==</span> <span class="s2">&quot;maqt&quot;</span><span class="p">:</span>
-                <span class="n">f_img</span> <span class="o">=</span> <span class="n">glob</span><span class="o">.</span><span class="n">glob</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">path</span> <span class="o">+</span> <span class="s2">&quot;MASQUES/BORD/*_10m.bord_final&quot;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
-            <span class="k">else</span><span class="p">:</span>
-                <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;ERROR: Unable to find aot product...&quot;</span><span class="p">)</span>
-                <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
-
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">verbosity</span><span class="p">:</span>
-            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;INFO: Found file </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">f_img</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;/&quot;</span><span class="p">)[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
-
-        <span class="k">try</span><span class="p">:</span>
-            <span class="n">data</span> <span class="o">=</span> <span class="n">gdal</span><span class="o">.</span><span class="n">Open</span><span class="p">(</span><span class="n">f_img</span><span class="p">)</span>
-        <span class="k">except</span> <span class="ne">RuntimeError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
-            <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;ERROR: Unable to open &#39;</span> <span class="o">+</span> <span class="n">f_img</span><span class="p">)</span>
-            <span class="nb">print</span><span class="p">(</span><span class="n">e</span><span class="p">)</span>
-            <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
-
-        <span class="k">if</span> <span class="n">name</span> <span class="o">==</span> <span class="s2">&quot;aot&quot;</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">type</span> <span class="o">==</span> <span class="s2">&quot;maja&quot;</span><span class="p">:</span>
-            <span class="k">return</span> <span class="n">Image</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">GetRasterBand</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span><span class="o">.</span><span class="n">ReadAsArray</span><span class="p">(),</span> <span class="bp">self</span><span class="o">.</span><span class="n">type</span> <span class="o">+</span> <span class="s2">&quot; &quot;</span> <span class="o">+</span> <span class="n">name</span><span class="p">,</span> \
-                         <span class="bp">self</span><span class="o">.</span><span class="n">scale_f_aot</span><span class="p">,</span> <span class="n">verbosity</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">verbosity</span><span class="p">)</span>
-        <span class="k">elif</span> <span class="n">name</span> <span class="o">==</span> <span class="s2">&quot;aot&quot;</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">type</span> <span class="o">==</span> <span class="s2">&quot;maqt&quot;</span><span class="p">:</span>
-            <span class="k">return</span> <span class="n">Image</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">GetRasterBand</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">ReadAsArray</span><span class="p">(),</span> <span class="bp">self</span><span class="o">.</span><span class="n">type</span> <span class="o">+</span> <span class="s2">&quot; &quot;</span> <span class="o">+</span> <span class="n">name</span><span class="p">,</span> \
-                         <span class="bp">self</span><span class="o">.</span><span class="n">scale_f_aot</span><span class="p">,</span> <span class="n">verbosity</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">verbosity</span><span class="p">)</span>
-        <span class="k">else</span><span class="p">:</span>
-            <span class="k">return</span> <span class="n">Image</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">GetRasterBand</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">ReadAsArray</span><span class="p">(),</span> <span class="bp">self</span><span class="o">.</span><span class="n">type</span> <span class="o">+</span> <span class="s2">&quot; &quot;</span> <span class="o">+</span> <span class="n">name</span><span class="p">,</span> <span class="n">verbosity</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">verbosity</span><span class="p">)</span></div></div>
+<div class="viewcode-block" id="Context"><a class="viewcode-back" href="../../index.html#majatools.majatools.Context">[docs]</a><span class="k">class</span> <span class="nc">Context</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;Description of a Maja simulation context, Yaml version</span>
+<span class="sd">    </span>
+<span class="sd">    &quot;&quot;&quot;</span></div>
 
 
 <div class="viewcode-block" id="Image"><a class="viewcode-back" href="../../index.html#majatools.majatools.Image">[docs]</a><span class="k">class</span> <span class="nc">Image</span><span class="p">:</span>
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Extends a numpy array with attributes from Run, adds specifics methods</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">band</span><span class="p">,</span> <span class="n">band_name</span><span class="p">,</span> <span class="n">scale_f</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">nodata</span> <span class="o">=</span> <span class="o">-</span><span class="mi">10000</span><span class="p">,</span> <span class="n">verbosity</span> <span class="o">=</span> <span class="kc">False</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">        Initialization of Image</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">band</span><span class="p">,</span> <span class="n">band_name</span><span class="p">,</span> <span class="n">scale_f</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">nodata</span><span class="o">=-</span><span class="mi">10000</span><span class="p">,</span> <span class="n">verbosity</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Initialization of Image</span>
+
 <span class="sd">        :param band: numpy array</span>
 <span class="sd">        :param band_name: string name of the band</span>
 <span class="sd">        :param scale_f: if any, scale factor of the variable in band</span>
@@ -267,6 +209,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">scale_f</span> <span class="o">=</span> <span class="n">scale_f</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">nodata</span> <span class="o">=</span> <span class="n">nodata</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">verbosity</span> <span class="o">=</span> <span class="n">verbosity</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">x_dim</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">y_dim</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">__get_band_size</span><span class="p">()</span>
 
         <span class="c1"># Changing nodata to NaN</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">band</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">band</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="s1">&#39;float64&#39;</span><span class="p">)</span>
@@ -276,10 +219,10 @@
         <span class="c1"># Apply scale factor</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">band</span> <span class="o">/=</span> <span class="bp">self</span><span class="o">.</span><span class="n">scale_f</span>
 
-<div class="viewcode-block" id="Image.get_finite"><a class="viewcode-back" href="../../index.html#majatools.majatools.Image.get_finite">[docs]</a>    <span class="k">def</span> <span class="nf">get_finite</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">mask</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+<div class="viewcode-block" id="Image.get_finite"><a class="viewcode-back" href="../../index.html#majatools.majatools.Image.get_finite">[docs]</a>    <span class="k">def</span> <span class="nf">get_finite</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">mask</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        :param mask: optional filter to remove any non-zero pixels from self.band</span>
-<span class="sd">        :return: a vector of finite values of self.band</span>
+<span class="sd">        :return: a vector of finite values of Image.band</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">if</span> <span class="n">mask</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">search</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">mask</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">)</span>
@@ -288,8 +231,8 @@
         <span class="k">return</span> <span class="n">Image</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">extract</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">band</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">band</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">band_name</span><span class="p">,</span> <span class="n">verbosity</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">verbosity</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="Image.resample"><a class="viewcode-back" href="../../index.html#majatools.majatools.Image.resample">[docs]</a>    <span class="k">def</span> <span class="nf">resample</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">n</span><span class="o">=</span><span class="mi">6</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">        Downscaling method</span>
+        <span class="sd">&quot;&quot;&quot;Downscaling method</span>
+
 <span class="sd">        :param n: resampling factor</span>
 <span class="sd">        :return: a resampled Image object, or self if n = 1</span>
 <span class="sd">        &quot;&quot;&quot;</span>
@@ -316,40 +259,629 @@
 
             <span class="k">return</span> <span class="n">Image</span><span class="p">(</span><span class="n">subset</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">band_name</span> <span class="o">+</span> <span class="s2">&quot; resampled&quot;</span><span class="p">,</span> <span class="n">verbosity</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">verbosity</span><span class="p">)</span></div>
 
-    <span class="k">def</span> <span class="nf">apply_mask</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<div class="viewcode-block" id="Image.subset_aoi"><a class="viewcode-back" href="../../index.html#majatools.majatools.Image.subset_aoi">[docs]</a>    <span class="k">def</span> <span class="nf">subset_aoi</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">aoi</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Extract square image subset by pixel coordinates</span>
+
+<span class="sd">        :param aoi: aoi instance</span>
+<span class="sd">        :return: an Image instance</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">Image</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__crop_band_by_aoi</span><span class="p">(</span><span class="n">aoi</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">band_name</span><span class="p">,</span> <span class="n">scale_f</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">nodata</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">nodata</span><span class="p">)</span></div>
+
+    <span class="k">def</span> <span class="nf">__check_is_inside</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">aoi</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Returns True if an AOI is within the extent of an image</span>
+
+<span class="sd">        :param aoi:</span>
+<span class="sd">        :return: Boolean</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="p">(</span><span class="n">aoi</span><span class="o">.</span><span class="n">x_center</span> <span class="o">&gt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">x_dim</span><span class="p">)</span> <span class="ow">or</span> <span class="p">(</span><span class="n">aoi</span><span class="o">.</span><span class="n">y_center</span> <span class="o">&gt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">y_dim</span><span class="p">):</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;ERROR: central coordinates of AOI outside of the image&quot;</span><span class="p">)</span>
+            <span class="k">return</span> <span class="kc">False</span>
+
+        <span class="k">if</span> <span class="p">(</span><span class="n">aoi</span><span class="o">.</span><span class="n">x_center</span> <span class="o">-</span> <span class="n">aoi</span><span class="o">.</span><span class="n">px_range</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">)</span> <span class="ow">or</span> <span class="p">(</span><span class="n">aoi</span><span class="o">.</span><span class="n">x_center</span> <span class="o">+</span> <span class="n">aoi</span><span class="o">.</span><span class="n">px_range</span> <span class="o">&gt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">x_dim</span><span class="p">):</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;ERROR: AOI extends outside of the image&quot;</span><span class="p">)</span>
+            <span class="k">return</span> <span class="kc">False</span>
+
+        <span class="k">if</span> <span class="p">(</span><span class="n">aoi</span><span class="o">.</span><span class="n">y_center</span> <span class="o">-</span> <span class="n">aoi</span><span class="o">.</span><span class="n">px_range</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">)</span> <span class="ow">or</span> <span class="p">(</span><span class="n">aoi</span><span class="o">.</span><span class="n">y_center</span> <span class="o">+</span> <span class="n">aoi</span><span class="o">.</span><span class="n">px_range</span> <span class="o">&gt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">y_dim</span><span class="p">):</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;ERROR: AOI extends outside of the image&quot;</span><span class="p">)</span>
+            <span class="k">return</span> <span class="kc">False</span>
+
+        <span class="k">return</span> <span class="kc">True</span>
+
+    <span class="k">def</span> <span class="nf">__crop_band_by_aoi</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">aoi</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Crops an Image band according to AOI extent</span>
+
+<span class="sd">        :param aoi: an Aoi instance</span>
+<span class="sd">        :return: an array</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">__check_is_inside</span><span class="p">(</span><span class="n">aoi</span><span class="p">):</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">band</span><span class="p">[</span><span class="n">aoi</span><span class="o">.</span><span class="n">y_center</span> <span class="o">-</span> <span class="n">aoi</span><span class="o">.</span><span class="n">px_range</span><span class="p">:</span><span class="n">aoi</span><span class="o">.</span><span class="n">y_center</span> <span class="o">+</span> <span class="n">aoi</span><span class="o">.</span><span class="n">px_range</span><span class="p">,</span> \
+                   <span class="n">aoi</span><span class="o">.</span><span class="n">x_center</span> <span class="o">-</span> <span class="n">aoi</span><span class="o">.</span><span class="n">px_range</span><span class="p">:</span><span class="n">aoi</span><span class="o">.</span><span class="n">x_center</span> <span class="o">+</span> <span class="n">aoi</span><span class="o">.</span><span class="n">px_range</span><span class="p">]</span>
+
+    <span class="k">def</span> <span class="nf">__get_band_size</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Private, returns band dimensions</span>
+
+<span class="sd">        :return: a tuple of int</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">band</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="p">:]),</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">band</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">])</span>
+
+        <span class="k">except</span> <span class="ne">IndexError</span><span class="p">:</span>
+            <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">band</span><span class="p">),</span> <span class="mi">0</span>
+
+<div class="viewcode-block" id="Image.apply_mask"><a class="viewcode-back" href="../../index.html#majatools.majatools.Image.apply_mask">[docs]</a>    <span class="k">def</span> <span class="nf">apply_mask</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">mask</span><span class="p">,</span> <span class="n">reverse</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Apply a given mask to self, replacing non-zeros by NaN</span>
+
+<span class="sd">        :param mask:</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">reverse</span><span class="p">:</span>
+            <span class="n">search</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">mask</span><span class="o">.</span><span class="n">band</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">band</span><span class="p">[</span><span class="n">search</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">NaN</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">search</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">mask</span><span class="o">.</span><span class="n">band</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">band</span><span class="p">[</span><span class="n">search</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">NaN</span></div>
+
+    <span class="k">def</span> <span class="nf">get_pixel_count</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">x</span><span class="p">,</span> <span class="n">y</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">__get_band_size</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">y</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">x</span> <span class="o">*</span> <span class="n">y</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">x</span></div>
+
+
+<div class="viewcode-block" id="Run"><a class="viewcode-back" href="../../index.html#majatools.majatools.Run">[docs]</a><span class="k">class</span> <span class="nc">Run</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Run object described by an XML context file, storing run attributes and providing a load_band method</span>
+
+<span class="sd">    TODO: replace the XML context by a dict, and implement a Yaml parser outside in a Context object</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">f_config</span><span class="p">,</span> <span class="n">verbosity</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Initialization of Run</span>
+
+<span class="sd">        :param f_config: XML context file passed as argument runA|runB</span>
+<span class="sd">        :param verbosity: increase verbosity to INFO is True</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">xml_config</span> <span class="o">=</span> <span class="n">minidom</span><span class="o">.</span><span class="n">parse</span><span class="p">(</span><span class="n">f_config</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">verbosity</span> <span class="o">=</span> <span class="n">verbosity</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">path</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">xml_config</span><span class="o">.</span><span class="n">getElementsByTagName</span><span class="p">(</span><span class="s2">&quot;path&quot;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">firstChild</span><span class="o">.</span><span class="n">nodeValue</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">type</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">xml_config</span><span class="o">.</span><span class="n">getElementsByTagName</span><span class="p">(</span><span class="s2">&quot;type&quot;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">firstChild</span><span class="o">.</span><span class="n">nodeValue</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">context</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">xml_config</span><span class="o">.</span><span class="n">getElementsByTagName</span><span class="p">(</span><span class="s2">&quot;context&quot;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">firstChild</span><span class="o">.</span><span class="n">nodeValue</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">scale_f_aot</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">xml_config</span><span class="o">.</span><span class="n">getElementsByTagName</span><span class="p">(</span><span class="s2">&quot;scale_f_aot&quot;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">firstChild</span><span class="o">.</span><span class="n">nodeValue</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">scale_f_sr</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">xml_config</span><span class="o">.</span><span class="n">getElementsByTagName</span><span class="p">(</span><span class="s2">&quot;scale_f_sr&quot;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">firstChild</span><span class="o">.</span><span class="n">nodeValue</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">nodata_aot</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">xml_config</span><span class="o">.</span><span class="n">getElementsByTagName</span><span class="p">(</span><span class="s2">&quot;nodata_aot&quot;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">firstChild</span><span class="o">.</span><span class="n">nodeValue</span><span class="p">)</span>
+
+
+        <span class="k">except</span> <span class="ne">IndexError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;ERROR: Mandatory parameter missing in XML file </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">f_config</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="n">e</span><span class="p">)</span>
+            <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+
+        <span class="c1"># Optional parameters</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">dtm_path</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">xml_config</span><span class="o">.</span><span class="n">getElementsByTagName</span><span class="p">(</span><span class="s2">&quot;dtm_path&quot;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">firstChild</span><span class="o">.</span><span class="n">nodeValue</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">water_path</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">xml_config</span><span class="o">.</span><span class="n">getElementsByTagName</span><span class="p">(</span><span class="s2">&quot;water_path&quot;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">firstChild</span><span class="o">.</span><span class="n">nodeValue</span>
+
+        <span class="k">except</span><span class="p">:</span>
+            <span class="k">pass</span>
+
+<div class="viewcode-block" id="Run.load_band"><a class="viewcode-back" href="../../index.html#majatools.majatools.Run.load_band">[docs]</a>    <span class="k">def</span> <span class="nf">load_band</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;aot&quot;</span><span class="p">,</span> <span class="n">subset</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">ulx</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">uly</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">lrx</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">lry</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Get a given image output of Run, optionally a subset by coordinates</span>
+
+<span class="sd">        :param name: any string between &quot;aot&quot;, &quot;cloud_mask&quot;, &quot;edge_mask&quot;</span>
+<span class="sd">        :param subset: if True use gdal_translate to subset an AOI</span>
+<span class="sd">        :param uly: upper left y</span>
+<span class="sd">        :param ulx: upper left x</span>
+<span class="sd">        :param lrx: lower right x</span>
+<span class="sd">        :param lry: lower right y</span>
+<span class="sd">        :return: an Image object of the related band name</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="c1"># Identify product file in product collection</span>
+        <span class="n">f_img</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">__get_f_img</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">)</span>
+
+        <span class="c1"># Extract a Gdal dataset from product file (optionally subset)</span>
+        <span class="n">product</span> <span class="o">=</span> <span class="n">get_geodata</span><span class="p">(</span><span class="n">f_img</span><span class="p">,</span> <span class="n">subset</span><span class="o">=</span><span class="n">subset</span><span class="p">,</span> <span class="n">ulx</span><span class="o">=</span><span class="n">ulx</span><span class="p">,</span> <span class="n">uly</span><span class="o">=</span><span class="n">uly</span><span class="p">,</span> <span class="n">lrx</span><span class="o">=</span><span class="n">lrx</span><span class="p">,</span> <span class="n">lry</span><span class="o">=</span><span class="n">lry</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">verbosity</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;INFO: Found file </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">f_img</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;/&quot;</span><span class="p">)[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+
+        <span class="c1"># Construct Image instance</span>
+        <span class="k">if</span> <span class="n">name</span> <span class="o">==</span> <span class="s2">&quot;aot&quot;</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">type</span> <span class="o">==</span> <span class="s2">&quot;maja&quot;</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">Image</span><span class="p">(</span><span class="n">product</span><span class="o">.</span><span class="n">GetRasterBand</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span><span class="o">.</span><span class="n">ReadAsArray</span><span class="p">(),</span> <span class="bp">self</span><span class="o">.</span><span class="n">type</span> <span class="o">+</span> <span class="s2">&quot; &quot;</span> <span class="o">+</span> <span class="n">name</span><span class="p">,</span> \
+                         <span class="n">scale_f</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">scale_f_aot</span><span class="p">,</span> <span class="n">verbosity</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">verbosity</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">name</span> <span class="o">==</span> <span class="s2">&quot;aot&quot;</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">type</span> <span class="o">==</span> <span class="s2">&quot;maqt&quot;</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">Image</span><span class="p">(</span><span class="n">product</span><span class="o">.</span><span class="n">GetRasterBand</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">ReadAsArray</span><span class="p">(),</span> <span class="bp">self</span><span class="o">.</span><span class="n">type</span> <span class="o">+</span> <span class="s2">&quot; &quot;</span> <span class="o">+</span> <span class="n">name</span><span class="p">,</span> \
+                         <span class="n">scale_f</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">scale_f_aot</span><span class="p">,</span> <span class="n">verbosity</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">verbosity</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">name</span><span class="p">[:</span><span class="mi">3</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;sre&quot;</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">Image</span><span class="p">(</span><span class="n">product</span><span class="o">.</span><span class="n">GetRasterBand</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">ReadAsArray</span><span class="p">(),</span> <span class="bp">self</span><span class="o">.</span><span class="n">type</span> <span class="o">+</span> <span class="s2">&quot; &quot;</span> <span class="o">+</span> <span class="n">name</span><span class="p">,</span> \
+                         <span class="n">scale_f</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">scale_f_sr</span><span class="p">,</span> <span class="n">verbosity</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">verbosity</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">name</span><span class="p">[:</span><span class="mi">3</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;toa&quot;</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">Image</span><span class="p">(</span><span class="n">product</span><span class="o">.</span><span class="n">GetRasterBand</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">ReadAsArray</span><span class="p">(),</span> <span class="bp">self</span><span class="o">.</span><span class="n">type</span> <span class="o">+</span> <span class="s2">&quot; &quot;</span> <span class="o">+</span> <span class="n">name</span><span class="p">,</span> \
+                         <span class="n">scale_f</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">scale_f_sr</span><span class="p">,</span> <span class="n">verbosity</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">verbosity</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">Image</span><span class="p">(</span><span class="n">product</span><span class="o">.</span><span class="n">GetRasterBand</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">ReadAsArray</span><span class="p">(),</span> <span class="bp">self</span><span class="o">.</span><span class="n">type</span> <span class="o">+</span> <span class="s2">&quot; &quot;</span> <span class="o">+</span> <span class="n">name</span><span class="p">,</span> <span class="n">verbosity</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">verbosity</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Run.get_timestamp"><a class="viewcode-back" href="../../index.html#majatools.majatools.Run.get_timestamp">[docs]</a>    <span class="k">def</span> <span class="nf">get_timestamp</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Get the timestamp of a given Run object as a string of format %Y%m%d-%H%M%S&quot;</span>
+
+<span class="sd">        :return: a string</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">type</span> <span class="o">==</span> <span class="s2">&quot;maja&quot;</span><span class="p">:</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">pattern</span> <span class="o">=</span> <span class="s2">&quot;[0-9]</span><span class="si">{8}</span><span class="s2">\-[0-9]</span><span class="si">{6}</span><span class="s2">&quot;</span>
+                <span class="n">s</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">findall</span><span class="p">(</span><span class="n">pattern</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">path</span><span class="p">)</span>
+                <span class="k">return</span> <span class="n">datetime</span><span class="o">.</span><span class="n">datetime</span><span class="o">.</span><span class="n">strptime</span><span class="p">(</span><span class="n">s</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="s2">&quot;%Y%m</span><span class="si">%d</span><span class="s2">-%H%M%S&quot;</span><span class="p">)</span>
+            <span class="k">except</span> <span class="ne">IndexError</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;WARNING: couldn&#39;t find any timestamp for </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">context</span><span class="p">)</span>
+                <span class="k">return</span> <span class="kc">None</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">pass</span></div>
+
+<div class="viewcode-block" id="Run.get_type"><a class="viewcode-back" href="../../index.html#majatools.majatools.Run.get_type">[docs]</a>    <span class="k">def</span> <span class="nf">get_type</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Return Run type</span>
+
+<span class="sd">        :return: string of type of the run, typically &quot;maja&quot; or &quot;maqt&quot;</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">type</span></div>
+
+    <span class="k">def</span> <span class="nf">__get_f_img</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Finds the actual file that relates to a variable name for a given product collection</span>
+
+<span class="sd">        :param name: variable name</span>
+<span class="sd">        :return: a file name</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># Kept for backward compatibility</span>
+        <span class="k">if</span> <span class="n">name</span> <span class="o">==</span> <span class="s2">&quot;aot&quot;</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">type</span> <span class="o">==</span> <span class="s2">&quot;maja&quot;</span><span class="p">:</span>
+                <span class="n">f_img</span> <span class="o">=</span> <span class="n">glob</span><span class="o">.</span><span class="n">glob</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">path</span> <span class="o">+</span> <span class="s2">&quot;*ATB_R1*&quot;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">type</span> <span class="o">==</span> <span class="s2">&quot;maqt&quot;</span><span class="p">:</span>
+                <span class="n">f_img</span> <span class="o">=</span> <span class="n">glob</span><span class="o">.</span><span class="n">glob</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">path</span> <span class="o">+</span> <span class="s2">&quot;ORTHO_SURF_AOT/*10m.tau2&quot;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;ERROR: Unable to find aot product...&quot;</span><span class="p">)</span>
+                <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">name</span> <span class="o">==</span> <span class="s2">&quot;aot_R1&quot;</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">type</span> <span class="o">==</span> <span class="s2">&quot;maja&quot;</span><span class="p">:</span>
+                <span class="n">f_img</span> <span class="o">=</span> <span class="n">glob</span><span class="o">.</span><span class="n">glob</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">path</span> <span class="o">+</span> <span class="s2">&quot;*ATB_R1*&quot;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">type</span> <span class="o">==</span> <span class="s2">&quot;maqt&quot;</span><span class="p">:</span>
+                <span class="n">f_img</span> <span class="o">=</span> <span class="n">glob</span><span class="o">.</span><span class="n">glob</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">path</span> <span class="o">+</span> <span class="s2">&quot;ORTHO_SURF_AOT/*10m.tau2&quot;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;ERROR: Unable to find aot product...&quot;</span><span class="p">)</span>
+                <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">name</span> <span class="o">==</span> <span class="s2">&quot;aot_R2&quot;</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">type</span> <span class="o">==</span> <span class="s2">&quot;maja&quot;</span><span class="p">:</span>
+                <span class="n">f_img</span> <span class="o">=</span> <span class="n">glob</span><span class="o">.</span><span class="n">glob</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">path</span> <span class="o">+</span> <span class="s2">&quot;*ATB_R2*&quot;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">type</span> <span class="o">==</span> <span class="s2">&quot;maqt&quot;</span><span class="p">:</span>
+                <span class="n">f_img</span> <span class="o">=</span> <span class="n">glob</span><span class="o">.</span><span class="n">glob</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">path</span> <span class="o">+</span> <span class="s2">&quot;ORTHO_SURF_AOT/*20m.tau2&quot;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;ERROR: Unable to find aot product...&quot;</span><span class="p">)</span>
+                <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">name</span><span class="p">[:</span><span class="mi">3</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;sre&quot;</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">type</span> <span class="o">==</span> <span class="s2">&quot;maja&quot;</span><span class="p">:</span>
+                <span class="n">f_img</span> <span class="o">=</span> <span class="n">glob</span><span class="o">.</span><span class="n">glob</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">path</span> <span class="o">+</span> <span class="s2">&quot;*SRE_&quot;</span> <span class="o">+</span> <span class="n">name</span><span class="p">[</span><span class="o">-</span><span class="mi">2</span><span class="p">:]</span> <span class="o">+</span> <span class="s2">&quot;*&quot;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">type</span> <span class="o">==</span> <span class="s2">&quot;maqt&quot;</span><span class="p">:</span>
+                <span class="n">f_img</span> <span class="o">=</span> <span class="n">glob</span><span class="o">.</span><span class="n">glob</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">path</span> <span class="o">+</span> <span class="s2">&quot;ORTHO_SURF_AOT/*10m.&quot;</span> <span class="o">+</span> <span class="n">name</span><span class="p">[</span><span class="o">-</span><span class="mi">2</span><span class="p">:])[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;ERROR: Unable to find SRE product...&quot;</span><span class="p">)</span>
+                <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">name</span><span class="p">[:</span><span class="mi">3</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;toa&quot;</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">type</span> <span class="o">==</span> <span class="s2">&quot;maja&quot;</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;ERROR: Not yet implemented...&quot;</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">type</span> <span class="o">==</span> <span class="s2">&quot;maqt&quot;</span><span class="p">:</span>
+                <span class="n">f_img</span> <span class="o">=</span> <span class="n">glob</span><span class="o">.</span><span class="n">glob</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">path</span> <span class="o">+</span> <span class="s2">&quot;ORTHO_TOA_ABS/*10m.&quot;</span> <span class="o">+</span> <span class="n">name</span><span class="p">[</span><span class="o">-</span><span class="mi">2</span><span class="p">:])[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;ERROR: Unable to find TOA product...&quot;</span><span class="p">)</span>
+                <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+
+        <span class="c1"># Kept for backward compatibility</span>
+        <span class="k">if</span> <span class="n">name</span> <span class="o">==</span> <span class="s2">&quot;cloud_mask&quot;</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">type</span> <span class="o">==</span> <span class="s2">&quot;maja&quot;</span><span class="p">:</span>
+                <span class="n">f_img</span> <span class="o">=</span> <span class="n">glob</span><span class="o">.</span><span class="n">glob</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">path</span> <span class="o">+</span> <span class="s2">&quot;MASKS/*CLM_R1.tif&quot;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">type</span> <span class="o">==</span> <span class="s2">&quot;maqt&quot;</span><span class="p">:</span>
+                <span class="n">f_img</span> <span class="o">=</span> <span class="n">glob</span><span class="o">.</span><span class="n">glob</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">path</span> <span class="o">+</span> <span class="s2">&quot;MASQUES/NUAGES/*_10m.nua&quot;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;ERROR: Unable to find cloud_mask product...&quot;</span><span class="p">)</span>
+                <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">name</span> <span class="o">==</span> <span class="s2">&quot;cloud_mask_R1&quot;</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">type</span> <span class="o">==</span> <span class="s2">&quot;maja&quot;</span><span class="p">:</span>
+                <span class="n">f_img</span> <span class="o">=</span> <span class="n">glob</span><span class="o">.</span><span class="n">glob</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">path</span> <span class="o">+</span> <span class="s2">&quot;MASKS/*CLM_R1.tif&quot;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">type</span> <span class="o">==</span> <span class="s2">&quot;maqt&quot;</span><span class="p">:</span>
+                <span class="n">f_img</span> <span class="o">=</span> <span class="n">glob</span><span class="o">.</span><span class="n">glob</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">path</span> <span class="o">+</span> <span class="s2">&quot;MASQUES/NUAGES/*_10m.nua&quot;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;ERROR: Unable to find cloud_mask product...&quot;</span><span class="p">)</span>
+                <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">name</span> <span class="o">==</span> <span class="s2">&quot;cloud_mask_R2&quot;</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">type</span> <span class="o">==</span> <span class="s2">&quot;maja&quot;</span><span class="p">:</span>
+                <span class="n">f_img</span> <span class="o">=</span> <span class="n">glob</span><span class="o">.</span><span class="n">glob</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">path</span> <span class="o">+</span> <span class="s2">&quot;MASKS/*CLM_R2.tif&quot;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">type</span> <span class="o">==</span> <span class="s2">&quot;maqt&quot;</span><span class="p">:</span>
+                <span class="n">f_img</span> <span class="o">=</span> <span class="n">glob</span><span class="o">.</span><span class="n">glob</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">path</span> <span class="o">+</span> <span class="s2">&quot;MASQUES/NUAGES/*_20m.nua&quot;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;ERROR: Unable to find cloud_mask product...&quot;</span><span class="p">)</span>
+                <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+
+        <span class="c1"># Kept for backward compatibility</span>
+        <span class="k">if</span> <span class="n">name</span> <span class="o">==</span> <span class="s2">&quot;edge_mask&quot;</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">type</span> <span class="o">==</span> <span class="s2">&quot;maja&quot;</span><span class="p">:</span>
+                <span class="n">f_img</span> <span class="o">=</span> <span class="n">glob</span><span class="o">.</span><span class="n">glob</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">path</span> <span class="o">+</span> <span class="s2">&quot;MASKS/*_EDG_R1.tif&quot;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">type</span> <span class="o">==</span> <span class="s2">&quot;maqt&quot;</span><span class="p">:</span>
+                <span class="n">f_img</span> <span class="o">=</span> <span class="n">glob</span><span class="o">.</span><span class="n">glob</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">path</span> <span class="o">+</span> <span class="s2">&quot;MASQUES/BORD/*_10m.bord_final&quot;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;ERROR: Unable to find edge_mask product...&quot;</span><span class="p">)</span>
+                <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">name</span> <span class="o">==</span> <span class="s2">&quot;edge_mask_R1&quot;</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">type</span> <span class="o">==</span> <span class="s2">&quot;maja&quot;</span><span class="p">:</span>
+                <span class="n">f_img</span> <span class="o">=</span> <span class="n">glob</span><span class="o">.</span><span class="n">glob</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">path</span> <span class="o">+</span> <span class="s2">&quot;MASKS/*_EDG_R1.tif&quot;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">type</span> <span class="o">==</span> <span class="s2">&quot;maqt&quot;</span><span class="p">:</span>
+                <span class="n">f_img</span> <span class="o">=</span> <span class="n">glob</span><span class="o">.</span><span class="n">glob</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">path</span> <span class="o">+</span> <span class="s2">&quot;MASQUES/BORD/*_10m.bord_final&quot;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;ERROR: Unable to find edge_mask product...&quot;</span><span class="p">)</span>
+                <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">name</span> <span class="o">==</span> <span class="s2">&quot;edge_mask_R2&quot;</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">type</span> <span class="o">==</span> <span class="s2">&quot;maja&quot;</span><span class="p">:</span>
+                <span class="n">f_img</span> <span class="o">=</span> <span class="n">glob</span><span class="o">.</span><span class="n">glob</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">path</span> <span class="o">+</span> <span class="s2">&quot;MASKS/*_EDG_R2.tif&quot;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">type</span> <span class="o">==</span> <span class="s2">&quot;maqt&quot;</span><span class="p">:</span>
+                <span class="n">f_img</span> <span class="o">=</span> <span class="n">glob</span><span class="o">.</span><span class="n">glob</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">path</span> <span class="o">+</span> <span class="s2">&quot;MASQUES/BORD/*_20m.bord_final&quot;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;ERROR: Unable to find edge_mask product...&quot;</span><span class="p">)</span>
+                <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">name</span> <span class="o">==</span> <span class="s2">&quot;water mask&quot;</span><span class="p">:</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">f_img</span> <span class="o">=</span> <span class="n">glob</span><span class="o">.</span><span class="n">glob</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">water_path</span> <span class="o">+</span> <span class="s2">&quot;*_10m.water&quot;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="k">except</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;WARNING: Unable to find WATER MASK product for </span><span class="si">%s</span><span class="s2"> in </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">type</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">water_path</span><span class="p">))</span>
+
+        <span class="k">if</span> <span class="n">name</span> <span class="o">==</span> <span class="s2">&quot;dtm&quot;</span><span class="p">:</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">f_img</span> <span class="o">=</span> <span class="n">glob</span><span class="o">.</span><span class="n">glob</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dtm_path</span> <span class="o">+</span> <span class="s2">&quot;*10mfloat.mnt&quot;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="k">except</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;WARNING: Unable to find DTM product for </span><span class="si">%s</span><span class="s2">...&quot;</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">type</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">f_img</span>
+
+    <span class="k">def</span> <span class="nf">__get_gdal_dataset</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">f_img</span><span class="p">,</span> <span class="n">subset</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">ulx</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">uly</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">lrx</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">lry</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;[DEPRECATED] Extract a Gdal object from a product file, optionally a subset from coordinates</span>
+
+<span class="sd">        :param f_img: product image file</span>
+<span class="sd">        :param subset: if True use gdal_translate to subset an AOI</span>
+<span class="sd">        :param ulx: upper left x</span>
+<span class="sd">        :param uly: upper left y</span>
+<span class="sd">        :param lrx: lower right x</span>
+<span class="sd">        :param lry: lower right y</span>
+<span class="sd">        :return: a gdal object</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;WARNING: Run.__get_gdal_dataset is deprecated&quot;&#39;</span><span class="p">)</span>
+
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">data</span> <span class="o">=</span> <span class="n">gdal</span><span class="o">.</span><span class="n">Open</span><span class="p">(</span><span class="n">f_img</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">RuntimeError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;ERROR: Unable to open &#39;</span> <span class="o">+</span> <span class="n">f_img</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="n">e</span><span class="p">)</span>
+            <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">subset</span><span class="p">:</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">translate</span> <span class="o">=</span> <span class="s1">&#39;gdal_translate -projwin </span><span class="si">%s</span><span class="s1"> </span><span class="si">%s</span><span class="s1"> </span><span class="si">%s</span><span class="s1"> </span><span class="si">%s</span><span class="s1"> </span><span class="si">%s</span><span class="s1"> </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">ulx</span><span class="p">,</span> <span class="n">uly</span><span class="p">,</span> <span class="n">lrx</span><span class="p">,</span> <span class="n">lry</span><span class="p">,</span> <span class="n">f_img</span><span class="p">,</span> <span class="s2">&quot;.tmp.tif&quot;</span><span class="p">)</span>
+                <span class="n">os</span><span class="o">.</span><span class="n">system</span><span class="p">(</span><span class="n">translate</span><span class="p">)</span>
+                <span class="n">data</span> <span class="o">=</span> <span class="n">gdal</span><span class="o">.</span><span class="n">Open</span><span class="p">(</span><span class="s2">&quot;.tmp.tif&quot;</span><span class="p">)</span>
+                <span class="n">os</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="s2">&quot;.tmp.tif&quot;</span><span class="p">)</span>
+
+            <span class="k">except</span> <span class="ne">RuntimeError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;ERROR: Unable to open &#39;</span> <span class="o">+</span> <span class="n">f_img</span><span class="p">)</span>
+                <span class="nb">print</span><span class="p">(</span><span class="n">e</span><span class="p">)</span>
+                <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">data</span></div>
+
+
+<div class="viewcode-block" id="Timeseries"><a class="viewcode-back" href="../../index.html#majatools.majatools.Timeseries">[docs]</a><span class="k">class</span> <span class="nc">Timeseries</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    A collection of Run instances</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">f_config</span><span class="p">,</span> <span class="n">verbosity</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Initialization of Timeseries</span>
+
+<span class="sd">        :param f_config: XML context file passed as argument runA|runB</span>
+<span class="sd">        :param verbosity: increase verbosity to INFO is True</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">xml_config</span> <span class="o">=</span> <span class="n">minidom</span><span class="o">.</span><span class="n">parse</span><span class="p">(</span><span class="n">f_config</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">verbosity</span> <span class="o">=</span> <span class="n">verbosity</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">root_path</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">xml_config</span><span class="o">.</span><span class="n">getElementsByTagName</span><span class="p">(</span><span class="s2">&quot;root_path&quot;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">firstChild</span><span class="o">.</span><span class="n">nodeValue</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">collection_path</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">xml_config</span><span class="o">.</span><span class="n">getElementsByTagName</span><span class="p">(</span><span class="s2">&quot;collection_path&quot;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">firstChild</span><span class="o">.</span><span class="n">nodeValue</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">type</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">xml_config</span><span class="o">.</span><span class="n">getElementsByTagName</span><span class="p">(</span><span class="s2">&quot;type&quot;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">firstChild</span><span class="o">.</span><span class="n">nodeValue</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">context</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">xml_config</span><span class="o">.</span><span class="n">getElementsByTagName</span><span class="p">(</span><span class="s2">&quot;context&quot;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">firstChild</span><span class="o">.</span><span class="n">nodeValue</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">scale_f_aot</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">xml_config</span><span class="o">.</span><span class="n">getElementsByTagName</span><span class="p">(</span><span class="s2">&quot;scale_f_aot&quot;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">firstChild</span><span class="o">.</span><span class="n">nodeValue</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">scale_f_sr</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">xml_config</span><span class="o">.</span><span class="n">getElementsByTagName</span><span class="p">(</span><span class="s2">&quot;scale_f_sr&quot;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">firstChild</span><span class="o">.</span><span class="n">nodeValue</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">nodata_aot</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">xml_config</span><span class="o">.</span><span class="n">getElementsByTagName</span><span class="p">(</span><span class="s2">&quot;nodata_aot&quot;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">firstChild</span><span class="o">.</span><span class="n">nodeValue</span><span class="p">)</span>
+
+        <span class="k">except</span> <span class="ne">IndexError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;ERROR: Mandatory parameter missing in XML file </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">f_config</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="n">e</span><span class="p">)</span>
+            <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+
+<div class="viewcode-block" id="Timeseries.generate"><a class="viewcode-back" href="../../index.html#majatools.majatools.Timeseries.generate">[docs]</a>    <span class="k">def</span> <span class="nf">generate</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Create a collection of XML contexts for a given timeseries collection</span>
+
+<span class="sd">        :return: a collection of files</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">product_list</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">__get_product_fullpath_list</span><span class="p">()</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">__write_collection</span><span class="p">(</span><span class="n">product_list</span><span class="p">)</span></div>
+
+
+    <span class="k">def</span> <span class="nf">__get_product_fullpath_list</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Generate a list of products available in root_path</span>
+
+<span class="sd">        :return: a list of files</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">product_list</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+
+        <span class="k">return</span> <span class="n">product_list</span>
+
+    <span class="k">def</span> <span class="nf">__write_collection</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">product_list</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Produce XML contexts in loop over product list</span>
+
+<span class="sd">        :param product_list:</span>
+<span class="sd">        :return: a collection of XML files</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">for</span> <span class="n">product</span> <span class="ow">in</span> <span class="n">product_list</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">__write_run_xml</span><span class="p">(</span><span class="n">product</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">__write_run_xml</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">product</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Write an XML context</span>
+<span class="sd">        :param product:</span>
+<span class="sd">        :return: an XML context object</span>
+<span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">pass</span></div>
 
-
-<span class="k">def</span> <span class="nf">scatterplot</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> \
-                <span class="n">title</span> <span class="o">=</span> <span class="s2">&quot;demo&quot;</span><span class="p">,</span> <span class="n">xt</span> <span class="o">=</span> <span class="s2">&quot;x&quot;</span><span class="p">,</span> <span class="n">yt</span> <span class="o">=</span> <span class="s2">&quot;y&quot;</span><span class="p">,</span> \
-                <span class="n">f_savefig</span> <span class="o">=</span> <span class="s2">&quot;demo.png&quot;</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s1">&#39;aot&#39;</span><span class="p">):</span>
+<span class="k">def</span> <span class="nf">atmplot</span><span class="p">(</span><span class="n">toa</span><span class="p">,</span> <span class="n">rse</span><span class="p">,</span> <span class="n">aot</span><span class="p">,</span> \
+            <span class="n">title</span><span class="o">=</span><span class="s2">&quot;demo&quot;</span><span class="p">,</span> <span class="n">xt</span><span class="o">=</span><span class="s2">&quot;x&quot;</span><span class="p">,</span> <span class="n">yt</span><span class="o">=</span><span class="s2">&quot;y&quot;</span><span class="p">,</span> \
+            <span class="n">f_savefig</span><span class="o">=</span><span class="s2">&quot;demo.png&quot;</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s1">&#39;cloud_free&#39;</span><span class="p">,</span> <span class="n">show</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;</span>
-
-<span class="sd">    :param a: numpy array (1D or 2D)</span>
-<span class="sd">    :param b: numpy array (1D or 2D)</span>
+<span class="sd">    :param a: sample a, all land and water pixels, numpy array (1D or 2D)</span>
+<span class="sd">    :param b: sample b, all land and water pixels, numpy array (1D or 2D)</span>
+<span class="sd">    :param c: sample c, only land pixels, numpy array (1D or 2D)</span>
+<span class="sd">    :param d: sample d, only land pixels, numpy array (1D or 2D)</span>
 <span class="sd">    :param title: string of title</span>
 <span class="sd">    :param xt: label of x axis</span>
 <span class="sd">    :param yt: label of y axis</span>
 <span class="sd">    :param f_savefig: filename to save the figure to</span>
 <span class="sd">    :param mode: defines axis range, defaults to &#39;aot&#39;</span>
+<span class="sd">    :param show: showing plot, defaults to False</span>
 <span class="sd">    :return:</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">slope</span><span class="p">,</span> <span class="n">intercept</span><span class="p">,</span> <span class="n">r_value</span><span class="p">,</span> <span class="n">p_value</span><span class="p">,</span> <span class="n">std_err</span> <span class="o">=</span> <span class="n">stats</span><span class="o">.</span><span class="n">linregress</span><span class="p">(</span><span class="n">a</span><span class="p">,</span><span class="n">b</span><span class="p">)</span>
+    <span class="c1"># slope_all, intercept_all, r_value_all, p_value_all, std_err_all = stats.linregress(a, b)</span>
+    <span class="c1"># slope_ground, intercept_ground, r_value_ground, p_value_ground, std_err_ground = stats.linregress(c, d)</span>
 
-    <span class="n">fig</span><span class="p">,</span> <span class="n">ax</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">6</span><span class="p">,</span> <span class="mi">6</span><span class="p">))</span>
-    <span class="n">plt</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">%s</span><span class="s2"> (R2 = </span><span class="si">%6.4f</span><span class="s2">)&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">title</span><span class="p">,</span> <span class="n">r_value</span><span class="p">))</span>
+    <span class="n">fig</span><span class="p">,</span> <span class="n">ax1</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">6</span><span class="p">,</span> <span class="mi">6</span><span class="p">))</span>
 
-    <span class="k">if</span> <span class="n">mode</span> <span class="o">==</span> <span class="s1">&#39;sr&#39;</span><span class="p">:</span>
-        <span class="n">ax</span><span class="o">.</span><span class="n">plot</span><span class="p">([</span><span class="mi">0</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">],</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">],</span> <span class="s1">&#39;k--&#39;</span><span class="p">)</span>
-    <span class="k">elif</span> <span class="n">mode</span> <span class="o">==</span> <span class="s1">&#39;aot&#39;</span><span class="p">:</span>
-        <span class="n">ax</span><span class="o">.</span><span class="n">plot</span><span class="p">([</span><span class="mi">0</span><span class="p">,</span> <span class="mf">0.6</span><span class="p">],</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mf">0.6</span><span class="p">],</span> <span class="s1">&#39;k--&#39;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">mode</span> <span class="o">==</span> <span class="s2">&quot;cloud_free&quot;</span><span class="p">:</span>
+        <span class="n">ax1</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="s2">&quot;SRE=f(TOA), cloud-free pixels&quot;</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">ax1</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="s2">&quot;SRE=f(TOA)&quot;</span><span class="p">)</span>
 
-    <span class="n">ax</span><span class="o">.</span><span class="n">set_aspect</span><span class="p">(</span><span class="s1">&#39;equal&#39;</span><span class="p">,</span> <span class="s1">&#39;box&#39;</span><span class="p">)</span>
-    <span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="n">xt</span><span class="p">)</span>
-    <span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="n">yt</span><span class="p">)</span>
-    <span class="n">ax</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="s1">&#39;bo&#39;</span><span class="p">,</span> <span class="n">markersize</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+    <span class="n">max_range</span> <span class="o">=</span> <span class="nb">max</span><span class="p">([</span><span class="n">aot</span><span class="o">.</span><span class="n">max</span><span class="p">(),</span> <span class="n">rse</span><span class="o">.</span><span class="n">max</span><span class="p">()])</span>
+    <span class="n">ax1</span><span class="o">.</span><span class="n">plot</span><span class="p">([</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">max_range</span><span class="p">],</span> <span class="p">[</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">max_range</span><span class="p">],</span> <span class="s1">&#39;k--&#39;</span><span class="p">)</span>
+
+    <span class="n">ax1</span><span class="o">.</span><span class="n">set_aspect</span><span class="p">(</span><span class="s1">&#39;equal&#39;</span><span class="p">,</span> <span class="s1">&#39;box&#39;</span><span class="p">)</span>
+    <span class="n">ax1</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="n">xt</span><span class="p">)</span>
+    <span class="n">ax1</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="n">yt</span><span class="p">)</span>
+
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;INFO: min AOT=</span><span class="si">%6.4f</span><span class="s2">, max AOT=</span><span class="si">%6.4f</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">aot</span><span class="o">.</span><span class="n">min</span><span class="p">(),</span> <span class="n">aot</span><span class="o">.</span><span class="n">max</span><span class="p">()))</span>
+
+    <span class="n">aot_step</span> <span class="o">=</span> <span class="mf">0.2</span>
+    <span class="k">for</span> <span class="n">aot_r</span> <span class="ow">in</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">aot</span><span class="o">.</span><span class="n">max</span><span class="p">(),</span> <span class="n">aot_step</span><span class="p">):</span>
+        <span class="n">aot_s</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">logical_and</span><span class="p">(</span><span class="n">aot</span> <span class="o">&gt;=</span> <span class="n">aot_r</span><span class="p">,</span> <span class="n">aot</span> <span class="o">&lt;</span> <span class="n">aot_r</span> <span class="o">+</span> <span class="n">aot_step</span><span class="p">))</span>
+        <span class="n">lbl</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;AOT[</span><span class="si">%4.2f</span><span class="s2">-</span><span class="si">%4.2f</span><span class="s2">]&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">aot_r</span><span class="p">,</span> <span class="n">aot_r</span> <span class="o">+</span> <span class="n">aot_step</span><span class="p">))</span>
+        <span class="n">ax1</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">toa</span><span class="p">[</span><span class="n">aot_s</span><span class="p">],</span> <span class="n">rse</span><span class="p">[</span><span class="n">aot_s</span><span class="p">],</span> <span class="s1">&#39;.&#39;</span><span class="p">,</span> <span class="n">markersize</span><span class="o">=</span><span class="mi">4</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="n">lbl</span><span class="p">)</span>
+        <span class="n">ax1</span><span class="o">.</span><span class="n">legend</span><span class="p">(</span><span class="n">loc</span><span class="o">=</span><span class="s1">&#39;upper right&#39;</span><span class="p">)</span>
+
     <span class="n">plt</span><span class="o">.</span><span class="n">savefig</span><span class="p">(</span><span class="n">f_savefig</span><span class="p">,</span> <span class="nb">format</span><span class="o">=</span><span class="s1">&#39;png&#39;</span><span class="p">)</span>
-    <span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+    <span class="k">if</span> <span class="n">show</span> <span class="o">==</span> <span class="kc">True</span><span class="p">:</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+
+
+<span class="k">def</span> <span class="nf">get_geodata</span><span class="p">(</span><span class="n">f_img</span><span class="p">,</span> <span class="n">subset</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">ulx</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">uly</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">lrx</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">lry</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Extract a Gdal object from a product file, optionally a subset from coordinates</span>
+
+<span class="sd">    :param f_img: product image file</span>
+<span class="sd">    :param subset: if True use gdal_translate to subset an AOI</span>
+<span class="sd">    :param ulx: upper left x</span>
+<span class="sd">    :param uly: upper left y</span>
+<span class="sd">    :param lrx: lower right x</span>
+<span class="sd">    :param lry: lower right y</span>
+<span class="sd">    :return: a gdal object</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="n">gdal</span><span class="o">.</span><span class="n">Open</span><span class="p">(</span><span class="n">f_img</span><span class="p">)</span>
+    <span class="k">except</span> <span class="ne">RuntimeError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;ERROR: Unable to open &#39;</span> <span class="o">+</span> <span class="n">f_img</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="n">e</span><span class="p">)</span>
+        <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">subset</span><span class="p">:</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">translate</span> <span class="o">=</span> <span class="s1">&#39;gdal_translate -projwin </span><span class="si">%s</span><span class="s1"> </span><span class="si">%s</span><span class="s1"> </span><span class="si">%s</span><span class="s1"> </span><span class="si">%s</span><span class="s1"> </span><span class="si">%s</span><span class="s1"> </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">ulx</span><span class="p">,</span> <span class="n">uly</span><span class="p">,</span> <span class="n">lrx</span><span class="p">,</span> <span class="n">lry</span><span class="p">,</span> <span class="n">f_img</span><span class="p">,</span> <span class="s2">&quot;.tmp.tif&quot;</span><span class="p">)</span>
+            <span class="n">os</span><span class="o">.</span><span class="n">system</span><span class="p">(</span><span class="n">translate</span><span class="p">)</span>
+            <span class="n">data</span> <span class="o">=</span> <span class="n">gdal</span><span class="o">.</span><span class="n">Open</span><span class="p">(</span><span class="s2">&quot;.tmp.tif&quot;</span><span class="p">)</span>
+            <span class="n">os</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="s2">&quot;.tmp.tif&quot;</span><span class="p">)</span>
+
+        <span class="k">except</span> <span class="ne">RuntimeError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;ERROR: Unable to open &#39;</span> <span class="o">+</span> <span class="n">f_img</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="n">e</span><span class="p">)</span>
+            <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">data</span>
+
+
+
+<span class="k">def</span> <span class="nf">diffmap</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">mode</span><span class="p">,</span> <span class="n">with_dtm</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Produce an absolute difference map as image</span>
+
+<span class="sd">    :param a: a numpy 2D array</span>
+<span class="sd">    :param b: b numpy 2D array</span>
+<span class="sd">    :param mode: either &quot;aot&quot; or &quot;sreXX&quot; where XX refers to a band (eg. B3)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">var_a</span> <span class="o">=</span> <span class="n">a</span><span class="o">.</span><span class="n">load_band</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="n">mode</span><span class="p">)</span>
+    <span class="n">var_b</span> <span class="o">=</span> <span class="n">b</span><span class="o">.</span><span class="n">load_band</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="n">mode</span><span class="p">)</span>
+
+    <span class="n">edge_a</span> <span class="o">=</span> <span class="n">a</span><span class="o">.</span><span class="n">load_band</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">&quot;edge_mask&quot;</span><span class="p">)</span>
+    <span class="n">edge_b</span> <span class="o">=</span> <span class="n">b</span><span class="o">.</span><span class="n">load_band</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">&quot;edge_mask&quot;</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">with_dtm</span><span class="p">:</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">dtm</span> <span class="o">=</span> <span class="n">a</span><span class="o">.</span><span class="n">load_band</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">&quot;dtm&quot;</span><span class="p">)</span>
+            <span class="n">water</span> <span class="o">=</span> <span class="n">a</span><span class="o">.</span><span class="n">load_band</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">&quot;water mask&quot;</span><span class="p">)</span>
+            <span class="n">dtm</span><span class="o">.</span><span class="n">apply_mask</span><span class="p">(</span><span class="n">water</span><span class="p">)</span>
+
+        <span class="k">except</span><span class="p">:</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">dtm</span> <span class="o">=</span> <span class="n">b</span><span class="o">.</span><span class="n">load_band</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">&quot;dtm&quot;</span><span class="p">)</span>
+                <span class="n">water</span> <span class="o">=</span> <span class="n">b</span><span class="o">.</span><span class="n">load_band</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">&quot;water mask&quot;</span><span class="p">)</span>
+                <span class="n">dtm</span><span class="o">.</span><span class="n">apply_mask</span><span class="p">(</span><span class="n">water</span><span class="p">)</span>
+            <span class="k">except</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;WARNING: Unable to find any DTM product or unspecified in XML, skipping option withDTM...&quot;</span><span class="p">)</span>
+                <span class="n">with_dtm</span> <span class="o">=</span> <span class="kc">False</span>
+
+    <span class="n">var_a</span><span class="o">.</span><span class="n">apply_mask</span><span class="p">(</span><span class="n">edge_a</span><span class="p">)</span>
+    <span class="n">var_b</span><span class="o">.</span><span class="n">apply_mask</span><span class="p">(</span><span class="n">edge_b</span><span class="p">)</span>
+    <span class="n">diff</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">var_a</span><span class="o">.</span><span class="n">band</span> <span class="o">-</span> <span class="n">var_b</span><span class="o">.</span><span class="n">band</span><span class="p">)</span>
+
+    <span class="n">plt</span><span class="o">.</span><span class="n">clf</span><span class="p">()</span>
+
+    <span class="k">if</span> <span class="n">with_dtm</span><span class="p">:</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">12</span><span class="p">,</span> <span class="mi">6</span><span class="p">))</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">subplot</span><span class="p">(</span><span class="mi">121</span><span class="p">)</span>
+
+    <span class="n">plt</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="s2">&quot;Abs(</span><span class="si">%s</span><span class="s2"> </span><span class="si">%s</span><span class="s2"> - </span><span class="si">%s</span><span class="s2"> </span><span class="si">%s</span><span class="s2">)&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">a</span><span class="o">.</span><span class="n">context</span><span class="p">,</span> <span class="n">a</span><span class="o">.</span><span class="n">type</span><span class="p">,</span> <span class="n">b</span><span class="o">.</span><span class="n">context</span><span class="p">,</span> <span class="n">b</span><span class="o">.</span><span class="n">type</span><span class="p">))</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">imshow</span><span class="p">(</span><span class="n">diff</span><span class="p">,</span> <span class="n">interpolation</span><span class="o">=</span><span class="s1">&#39;none&#39;</span><span class="p">)</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">colorbar</span><span class="p">(</span><span class="n">orientation</span><span class="o">=</span><span class="s2">&quot;horizontal&quot;</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">with_dtm</span><span class="p">:</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">subplot</span><span class="p">(</span><span class="mi">122</span><span class="p">)</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">imshow</span><span class="p">(</span><span class="n">dtm</span><span class="o">.</span><span class="n">band</span><span class="p">,</span> <span class="n">interpolation</span><span class="o">=</span><span class="s1">&#39;none&#39;</span><span class="p">,</span> <span class="n">cmap</span><span class="o">=</span><span class="s1">&#39;terrain&#39;</span><span class="p">)</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">colorbar</span><span class="p">(</span><span class="n">orientation</span><span class="o">=</span><span class="s2">&quot;horizontal&quot;</span><span class="p">)</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="s2">&quot;MNT&quot;</span><span class="p">)</span>
+
+    <span class="n">plt</span><span class="o">.</span><span class="n">savefig</span><span class="p">(</span><span class="s2">&quot;Diffmap_</span><span class="si">%s</span><span class="s2">_</span><span class="si">%s</span><span class="s2">-</span><span class="si">%s</span><span class="s2">_</span><span class="si">%s</span><span class="s2">.png&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">a</span><span class="o">.</span><span class="n">context</span><span class="p">,</span> <span class="n">a</span><span class="o">.</span><span class="n">type</span><span class="p">,</span> <span class="n">b</span><span class="o">.</span><span class="n">context</span><span class="p">,</span> <span class="n">b</span><span class="o">.</span><span class="n">type</span><span class="p">))</span>
+
+
+<span class="k">def</span> <span class="nf">single_scatterplot</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">mask</span><span class="p">,</span> <span class="n">x_context</span><span class="o">=</span><span class="s2">&quot;A&quot;</span><span class="p">,</span> <span class="n">y_context</span><span class="o">=</span><span class="s2">&quot;B&quot;</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s1">&#39;aot&#39;</span><span class="p">,</span> <span class="n">show</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    :param a: sample a, all land and water pixels, numpy array (1D or 2D)</span>
+<span class="sd">    :param b: sample b, all land and water pixels, numpy array (1D or 2D)</span>
+<span class="sd">    :param title: string of title</span>
+<span class="sd">    :param xt: label of x axis</span>
+<span class="sd">    :param yt: label of y axis</span>
+<span class="sd">    :param f_savefig: filename to save the figure to</span>
+<span class="sd">    :param mode: defines axis range, defaults to &#39;aot&#39;</span>
+<span class="sd">    :param show: showing plot, defaults to False</span>
+<span class="sd">    :return: png file</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">masked_a</span> <span class="o">=</span> <span class="n">a</span><span class="o">.</span><span class="n">get_finite</span><span class="p">(</span><span class="n">mask</span><span class="o">=</span><span class="n">mask</span><span class="p">)</span>
+    <span class="n">masked_b</span> <span class="o">=</span> <span class="n">b</span><span class="o">.</span><span class="n">get_finite</span><span class="p">(</span><span class="n">mask</span><span class="o">=</span><span class="n">mask</span><span class="p">)</span>
+
+    <span class="n">px_count</span> <span class="o">=</span> <span class="n">a</span><span class="o">.</span><span class="n">get_pixel_count</span><span class="p">()</span>
+    <span class="n">mask_count</span> <span class="o">=</span> <span class="n">masked_a</span><span class="o">.</span><span class="n">get_pixel_count</span><span class="p">()</span>
+
+    <span class="n">ratio</span> <span class="o">=</span> <span class="n">mask_count</span> <span class="o">/</span> <span class="n">px_count</span>
+
+    <span class="n">rmse</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">std</span><span class="p">(</span><span class="n">masked_a</span><span class="o">.</span><span class="n">band</span> <span class="o">-</span> <span class="n">masked_b</span><span class="o">.</span><span class="n">band</span><span class="p">)</span>
+
+    <span class="n">fig</span><span class="p">,</span> <span class="p">(</span><span class="n">ax1</span><span class="p">)</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">6</span><span class="p">,</span> <span class="mi">6</span><span class="p">))</span>
+    <span class="n">ax1</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">%3.1f</span><span class="s2"> </span><span class="si">%%</span><span class="s2"> cloud-free pixels (rmse = </span><span class="si">%5.4f</span><span class="s2">)&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">ratio</span> <span class="o">*</span> <span class="mi">100</span><span class="p">,</span> <span class="n">rmse</span><span class="p">))</span>
+
+    <span class="k">if</span> <span class="n">mode</span> <span class="o">==</span> <span class="s1">&#39;sre&#39;</span><span class="p">:</span>
+        <span class="n">ax1</span><span class="o">.</span><span class="n">plot</span><span class="p">([</span><span class="mi">0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">],</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">],</span> <span class="s1">&#39;k--&#39;</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="n">mode</span> <span class="o">==</span> <span class="s1">&#39;aot&#39;</span><span class="p">:</span>
+        <span class="n">ax1</span><span class="o">.</span><span class="n">plot</span><span class="p">([</span><span class="mi">0</span><span class="p">,</span> <span class="mf">0.6</span><span class="p">],</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mf">0.6</span><span class="p">],</span> <span class="s1">&#39;k--&#39;</span><span class="p">)</span>
+
+    <span class="n">ax1</span><span class="o">.</span><span class="n">set_aspect</span><span class="p">(</span><span class="s1">&#39;equal&#39;</span><span class="p">,</span> <span class="s1">&#39;box&#39;</span><span class="p">)</span>
+    <span class="n">ax1</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="n">x_context</span> <span class="o">+</span> <span class="s2">&quot; &quot;</span> <span class="o">+</span> <span class="n">a</span><span class="o">.</span><span class="n">band_name</span><span class="p">)</span>
+    <span class="n">ax1</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="n">y_context</span> <span class="o">+</span> <span class="s2">&quot; &quot;</span> <span class="o">+</span> <span class="n">b</span><span class="o">.</span><span class="n">band_name</span><span class="p">)</span>
+    <span class="n">ax1</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">masked_a</span><span class="o">.</span><span class="n">band</span><span class="p">,</span> <span class="n">masked_b</span><span class="o">.</span><span class="n">band</span><span class="p">,</span> <span class="s1">&#39;bo&#39;</span><span class="p">,</span> <span class="n">markersize</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+
+    <span class="n">f_savefig</span> <span class="o">=</span> <span class="n">x_context</span> <span class="o">+</span> <span class="s2">&quot;_&quot;</span> <span class="o">+</span> <span class="n">masked_a</span><span class="o">.</span><span class="n">band_name</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot; &quot;</span><span class="p">,</span>
+                                                             <span class="s2">&quot;-&quot;</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot;_vs_&quot;</span> <span class="o">+</span> <span class="n">y_context</span> <span class="o">+</span> <span class="s2">&quot;_&quot;</span> <span class="o">+</span> <span class="n">masked_b</span><span class="o">.</span><span class="n">band_name</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span>
+        <span class="s2">&quot; &quot;</span><span class="p">,</span> <span class="s2">&quot;-&quot;</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot;.png&quot;</span>
+
+    <span class="n">plt</span><span class="o">.</span><span class="n">savefig</span><span class="p">(</span><span class="n">f_savefig</span><span class="p">,</span> <span class="nb">format</span><span class="o">=</span><span class="s1">&#39;png&#39;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">show</span> <span class="o">==</span> <span class="kc">True</span><span class="p">:</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+
+    <span class="k">return</span> <span class="n">ratio</span><span class="p">,</span> <span class="n">rmse</span>
+
+
+<span class="k">def</span> <span class="nf">single_quicklook</span><span class="p">(</span><span class="n">r</span><span class="p">,</span> <span class="n">g</span><span class="p">,</span> <span class="n">b</span><span class="p">):</span>
+    <span class="k">pass</span>
+
+
+<span class="k">def</span> <span class="nf">scatterplot</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">c</span><span class="p">,</span> <span class="n">d</span><span class="p">,</span> \
+                <span class="n">title</span><span class="o">=</span><span class="s2">&quot;demo&quot;</span><span class="p">,</span> <span class="n">xt</span><span class="o">=</span><span class="s2">&quot;x&quot;</span><span class="p">,</span> <span class="n">yt</span><span class="o">=</span><span class="s2">&quot;y&quot;</span><span class="p">,</span> \
+                <span class="n">f_savefig</span><span class="o">=</span><span class="s2">&quot;demo.png&quot;</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s1">&#39;aot&#39;</span><span class="p">,</span> <span class="n">show</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    :param a: sample a, all land and water pixels, numpy array (1D or 2D)</span>
+<span class="sd">    :param b: sample b, all land and water pixels, numpy array (1D or 2D)</span>
+<span class="sd">    :param c: sample c, only land pixels, numpy array (1D or 2D)</span>
+<span class="sd">    :param d: sample d, only land pixels, numpy array (1D or 2D)</span>
+<span class="sd">    :param title: string of title</span>
+<span class="sd">    :param xt: label of x axis</span>
+<span class="sd">    :param yt: label of y axis</span>
+<span class="sd">    :param f_savefig: filename to save the figure to</span>
+<span class="sd">    :param mode: defines axis range, defaults to &#39;aot&#39;</span>
+<span class="sd">    :param show: showing plot, defaults to False</span>
+<span class="sd">    :return:</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># slope_all, intercept_all, r_value_all, p_value_all, std_err_all = stats.linregress(a, b)</span>
+    <span class="c1"># slope_ground, intercept_ground, r_value_ground, p_value_ground, std_err_ground = stats.linregress(c, d)</span>
+
+    <span class="n">diff_all</span> <span class="o">=</span> <span class="n">a</span> <span class="o">-</span> <span class="n">b</span>
+    <span class="n">std_all</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="nb">abs</span><span class="p">(</span><span class="n">diff_all</span> <span class="o">-</span> <span class="n">diff_all</span><span class="o">.</span><span class="n">mean</span><span class="p">())</span> <span class="o">**</span> <span class="mi">2</span><span class="p">))</span>
+
+    <span class="n">diff_ground</span> <span class="o">=</span> <span class="n">c</span> <span class="o">-</span> <span class="n">d</span>
+    <span class="n">std_ground</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="nb">abs</span><span class="p">(</span><span class="n">diff_ground</span> <span class="o">-</span> <span class="n">diff_ground</span><span class="o">.</span><span class="n">mean</span><span class="p">())</span> <span class="o">**</span> <span class="mi">2</span><span class="p">))</span>
+    <span class="n">std_ground</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">std</span><span class="p">(</span><span class="n">diff_all</span><span class="p">)</span>
+
+    <span class="n">fig</span><span class="p">,</span> <span class="p">(</span><span class="n">ax1</span><span class="p">,</span> <span class="n">ax2</span><span class="p">)</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">12</span><span class="p">,</span> <span class="mi">6</span><span class="p">))</span>
+    <span class="n">ax1</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="s2">&quot;Cloud-free pixels (std dev=</span><span class="si">%8.4f</span><span class="s2">)&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">std_all</span><span class="p">))</span>
+
+    <span class="k">if</span> <span class="n">mode</span> <span class="o">==</span> <span class="s1">&#39;sre&#39;</span><span class="p">:</span>
+        <span class="n">ax1</span><span class="o">.</span><span class="n">plot</span><span class="p">([</span><span class="mi">0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">],</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">],</span> <span class="s1">&#39;k--&#39;</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="n">mode</span> <span class="o">==</span> <span class="s1">&#39;aot&#39;</span><span class="p">:</span>
+        <span class="n">ax1</span><span class="o">.</span><span class="n">plot</span><span class="p">([</span><span class="mi">0</span><span class="p">,</span> <span class="mf">0.6</span><span class="p">],</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mf">0.6</span><span class="p">],</span> <span class="s1">&#39;k--&#39;</span><span class="p">)</span>
+
+    <span class="n">ax1</span><span class="o">.</span><span class="n">set_aspect</span><span class="p">(</span><span class="s1">&#39;equal&#39;</span><span class="p">,</span> <span class="s1">&#39;box&#39;</span><span class="p">)</span>
+    <span class="n">ax1</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="n">xt</span><span class="p">)</span>
+    <span class="n">ax1</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="n">yt</span><span class="p">)</span>
+    <span class="n">ax1</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="s1">&#39;bo&#39;</span><span class="p">,</span> <span class="n">markersize</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+
+    <span class="n">ax2</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="s2">&quot;Cloud-free pixels, land only (std dev=</span><span class="si">%8.4f</span><span class="s2">)&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">std_ground</span><span class="p">))</span>
+    <span class="k">if</span> <span class="n">mode</span> <span class="o">==</span> <span class="s1">&#39;sre&#39;</span><span class="p">:</span>
+        <span class="n">ax2</span><span class="o">.</span><span class="n">plot</span><span class="p">([</span><span class="mi">0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">],</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">],</span> <span class="s1">&#39;k--&#39;</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="n">mode</span> <span class="o">==</span> <span class="s1">&#39;aot&#39;</span><span class="p">:</span>
+        <span class="n">ax2</span><span class="o">.</span><span class="n">plot</span><span class="p">([</span><span class="mi">0</span><span class="p">,</span> <span class="mf">0.6</span><span class="p">],</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mf">0.6</span><span class="p">],</span> <span class="s1">&#39;k--&#39;</span><span class="p">)</span>
+
+    <span class="n">ax2</span><span class="o">.</span><span class="n">set_aspect</span><span class="p">(</span><span class="s1">&#39;equal&#39;</span><span class="p">,</span> <span class="s1">&#39;box&#39;</span><span class="p">)</span>
+    <span class="n">ax2</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="n">xt</span><span class="p">)</span>
+    <span class="n">ax2</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="n">yt</span><span class="p">)</span>
+    <span class="n">ax2</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">c</span><span class="p">,</span> <span class="n">d</span><span class="p">,</span> <span class="s1">&#39;go&#39;</span><span class="p">,</span> <span class="n">markersize</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+
+    <span class="n">plt</span><span class="o">.</span><span class="n">savefig</span><span class="p">(</span><span class="n">f_savefig</span><span class="p">,</span> <span class="nb">format</span><span class="o">=</span><span class="s1">&#39;png&#39;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">show</span> <span class="o">==</span> <span class="kc">True</span><span class="p">:</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+
 
 </pre></div>
 

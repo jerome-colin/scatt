@@ -29,8 +29,8 @@ class Aoi:
     """
 
     def __init__(self, x_center, y_center, px_range):
-        """
-        Create an Aoi instance from pixel coordinates
+        """Create an Aoi instance from pixel coordinates
+
         :param x_center: central pixel coordinate along the horizontal
         :param y_center: central pixel coordinate along the vertical
         :param px_range: half-height / half-width range of the square Aoi
@@ -42,31 +42,8 @@ class Aoi:
 
 
 class Context:
-    """
-    Example of possible Yaml context:
-        ---
-        run:
-          ? "context name"
-          : blabla
-          flags:
-            plots: false
-            report: true
-            verbosity: true
-          paths:
-            dtm_path: None
-            root_path: /dev/null
-            water_path: None
-          scale_factors:
-            nodata_aot: -10000
-            scale_f_aot: 200
-            scale_f_sr: 10000
-          subset:
-            lrx: 669240.0
-            lry: 4878660.0
-            ulx: 660240.0
-            uly: 4887660.0
-          type: maja
-
+    """Description of a Maja simulation context, Yaml version
+    
     """
 
 
@@ -76,8 +53,8 @@ class Image:
     """
 
     def __init__(self, band, band_name, scale_f=1, nodata=-10000, verbosity=False):
-        """
-        Initialization of Image
+        """Initialization of Image
+
         :param band: numpy array
         :param band_name: string name of the band
         :param scale_f: if any, scale factor of the variable in band
@@ -111,8 +88,8 @@ class Image:
         return Image(np.extract(np.isfinite(self.band), self.band), self.band_name, verbosity=self.verbosity)
 
     def resample(self, n=6):
-        """
-        Downscaling method
+        """Downscaling method
+
         :param n: resampling factor
         :return: a resampled Image object, or self if n = 1
         """
@@ -140,16 +117,16 @@ class Image:
             return Image(subset, self.band_name + " resampled", verbosity=self.verbosity)
 
     def subset_aoi(self, aoi):
-        """
-        Extract square image subset by pixel coordinates
+        """Extract square image subset by pixel coordinates
+
         :param aoi: aoi instance
         :return: an Image instance
         """
         return Image(self.__crop_band_by_aoi(aoi), self.band_name, scale_f=1, nodata=self.nodata)
 
     def __check_is_inside(self, aoi):
-        """
-        Returns True if an AOI is within the extent of an image
+        """Returns True if an AOI is within the extent of an image
+
         :param aoi:
         :return: Boolean
         """
@@ -168,8 +145,8 @@ class Image:
         return True
 
     def __crop_band_by_aoi(self, aoi):
-        """
-        Crops an Image band according to AOI extent
+        """Crops an Image band according to AOI extent
+
         :param aoi: an Aoi instance
         :return: an array
         """
@@ -178,8 +155,8 @@ class Image:
                    aoi.x_center - aoi.px_range:aoi.x_center + aoi.px_range]
 
     def __get_band_size(self):
-        """
-        Private, returns band dimensions
+        """Private, returns band dimensions
+
         :return: a tuple of int
         """
         try:
@@ -189,8 +166,8 @@ class Image:
             return len(self.band), 0
 
     def apply_mask(self, mask, reverse=False):
-        """
-        Apply a given mask to self, replacing non-zeros by NaN
+        """Apply a given mask to self, replacing non-zeros by NaN
+
         :param mask:
         """
         if reverse:
@@ -216,8 +193,8 @@ class Run:
     """
 
     def __init__(self, f_config, verbosity=False):
-        """
-        Initialization of Run
+        """Initialization of Run
+
         :param f_config: XML context file passed as argument runA|runB
         :param verbosity: increase verbosity to INFO is True
         """
@@ -246,8 +223,7 @@ class Run:
             pass
 
     def load_band(self, name="aot", subset=False, ulx=0, uly=0, lrx=0, lry=0):
-        """
-        Get a given image output of Run, optionally a subset by coordinates
+        """Get a given image output of Run, optionally a subset by coordinates
 
         :param name: any string between "aot", "cloud_mask", "edge_mask"
         :param subset: if True use gdal_translate to subset an AOI
@@ -284,8 +260,8 @@ class Run:
             return Image(product.GetRasterBand(1).ReadAsArray(), self.type + " " + name, verbosity=self.verbosity)
 
     def get_timestamp(self):
-        """
-        Get the timestamp of a given Run object as a string of format %Y%m%d-%H%M%S"
+        """Get the timestamp of a given Run object as a string of format %Y%m%d-%H%M%S"
+
         :return: a string
         """
         if self.type == "maja":
@@ -300,15 +276,15 @@ class Run:
             pass
 
     def get_type(self):
-        """
-        Return Run type
+        """Return Run type
+
         :return: string of type of the run, typically "maja" or "maqt"
         """
         return self.type
 
     def __get_f_img(self, name):
-        """
-        Finds the actual file that relates to a variable name for a given product collection
+        """Finds the actual file that relates to a variable name for a given product collection
+
         :param name: variable name
         :return: a file name
         """
@@ -429,9 +405,8 @@ class Run:
         return f_img
 
     def __get_gdal_dataset(self, f_img, subset=False, ulx=0, uly=0, lrx=0, lry=0):
-        """
-        DEPRECATED !!!
-        Extract a Gdal object from a product file, optionally a subset from coordinates
+        """[DEPRECATED] Extract a Gdal object from a product file, optionally a subset from coordinates
+
         :param f_img: product image file
         :param subset: if True use gdal_translate to subset an AOI
         :param ulx: upper left x
@@ -468,8 +443,8 @@ class Timeseries:
     A collection of Run instances
     """
     def __init__(self, f_config, verbosity=False):
-        """
-        Initialization of Timeseries
+        """Initialization of Timeseries
+
         :param f_config: XML context file passed as argument runA|runB
         :param verbosity: increase verbosity to INFO is True
         """
@@ -490,8 +465,8 @@ class Timeseries:
             sys.exit(1)
 
     def generate(self):
-        """
-        Create a collection of XML contexts for a given timeseries collection
+        """Create a collection of XML contexts for a given timeseries collection
+
         :return: a collection of files
         """
         product_list = self.__get_product_fullpath_list()
@@ -500,8 +475,8 @@ class Timeseries:
 
 
     def __get_product_fullpath_list(self):
-        """
-        Generate a list of products available in root_path
+        """Generate a list of products available in root_path
+
         :return: a list of files
         """
 
@@ -510,8 +485,8 @@ class Timeseries:
         return product_list
 
     def __write_collection(self, product_list):
-        """
-        Produce XML contexts in loop over product list
+        """Produce XML contexts in loop over product list
+
         :param product_list:
         :return: a collection of XML files
         """
@@ -574,8 +549,8 @@ def atmplot(toa, rse, aot, \
 
 
 def get_geodata(f_img, subset=False, ulx=0, uly=0, lrx=0, lry=0):
-    """
-    Extract a Gdal object from a product file, optionally a subset from coordinates
+    """Extract a Gdal object from a product file, optionally a subset from coordinates
+
     :param f_img: product image file
     :param subset: if True use gdal_translate to subset an AOI
     :param ulx: upper left x
@@ -608,8 +583,8 @@ def get_geodata(f_img, subset=False, ulx=0, uly=0, lrx=0, lry=0):
 
 
 def diffmap(a, b, mode, with_dtm=False):
-    """
-    Produce an absolute difference map as image
+    """Produce an absolute difference map as image
+
     :param a: a numpy 2D array
     :param b: b numpy 2D array
     :param mode: either "aot" or "sreXX" where XX refers to a band (eg. B3)
