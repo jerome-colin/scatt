@@ -193,7 +193,6 @@ class Image:
             return x
 
 
-
 class Run:
     """
     Run object described by an XML context file, storing run attributes and providing a load_band method
@@ -285,7 +284,6 @@ class Run:
         green = self.load_band(name="sreB3", subset=subset, ulx=ulx, lry=lry, lrx=lrx, uly=uly)
         blue = self.load_band(name="sreB2", subset=subset, ulx=ulx, lry=lry, lrx=lrx, uly=uly)
         return red, green, blue
-
 
     def get_timestamp(self):
         """Get the timestamp of a given Run object as a string of format %Y%m%d-%H%M%S"
@@ -470,6 +468,7 @@ class Timeseries:
     """
     A collection of Run instances
     """
+
     def __init__(self, f_config, verbosity=False):
         """Initialization of Timeseries
 
@@ -506,26 +505,41 @@ class Timeseries:
             print(e)
             sys.exit(1)
 
-
     def generate(self):
         """Create a collection of XML contexts for a given timeseries collection
 
         :return: a collection of files
         """
         product_list = self.__get_product_fullpath_list()
-
-        self.__write_collection(product_list)
-
+        print(self.common_product_list)
+        # self.__write_collection(product_list)
 
     def __get_product_fullpath_list(self):
         """Generate a list of products available in root_path
 
         :return: a list of files
         """
+        pattern = "SENTINEL2*"
+        product_list_1 = [os.path.basename(x) for x in glob.glob(self.root_path + self.collection_1_path + pattern)]
+        product_list_2 = [os.path.basename(x) for x in glob.glob(self.root_path + self.collection_2_path + pattern)]
 
-        product_list = ""
+        # Keep common products of both collections in a list
+        self.common_product_list = self.__common_member(product_list_1, product_list_2)
+        self.common_product_list_len = len(self.common_product_list)
 
-        return product_list
+    def __common_member(self, a, b):
+        """Return common elements of two lists a and b
+
+        :param a: list
+        :param b: list
+        :return: list
+        """
+        a_set = set(a)
+        b_set = set(b)
+        if (a_set & b_set):
+            return list(a_set & b_set)
+        else:
+            print("WARNING: No common elements in product list")
 
     def __write_collection(self, product_list):
         """Produce XML contexts in loop over product list
@@ -537,12 +551,13 @@ class Timeseries:
             self.__write_run_xml(product)
 
     def __write_run_xml(self, product):
-        """
-        Write an XML context
+        """Write an XML context
+        
         :param product:
         :return: an XML context object
         """
         pass
+
 
 def atmplot(toa, rse, aot, \
             title="demo", xt="x", yt="y", \
@@ -622,7 +637,6 @@ def get_geodata(f_img, subset=False, ulx=0, uly=0, lrx=0, lry=0):
             sys.exit(1)
 
     return data
-
 
 
 def diffmap(a, b, mode, with_dtm=False):
@@ -731,7 +745,7 @@ def single_quicklook_rgb(r, g, b, outfile="toto.png"):
     :param outfile: image file, usually the Run.context without extension
     :return: a PNG file
     """
-    array_stack = np.dstack((r.get_band_uint8(),g.get_band_uint8(),b.get_band_uint8()))
+    array_stack = np.dstack((r.get_band_uint8(), g.get_band_uint8(), b.get_band_uint8()))
     img = pillow.fromarray(array_stack)
     if outfile[-4:] != ".png":
         outfile += ".png"
@@ -792,5 +806,3 @@ def scatterplot(a, b, c, d, \
     plt.savefig(f_savefig, format='png')
     if show == True:
         plt.show()
-
-

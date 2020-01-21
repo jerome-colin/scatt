@@ -25,6 +25,8 @@ def wrapper(f_config, verbose=False):
 
     timeseries = majatools.Timeseries(f_config, verbosity=verbose)
 
+    timeseries.generate()
+
 
 if __name__ == "__main__":
     main()
