@@ -9,7 +9,7 @@ Note: don't mix gdal packages from base and from forge
 """
 __author__ = "Jerome Colin"
 __license__ = "CC BY"
-__version__ = "0.3.2"
+__version__ = "0.3.3"
 
 import datetime
 import glob
@@ -43,9 +43,18 @@ class Aoi:
 
 
 class Context:
-    """Description of a Maja simulation context, Yaml version
+    """Description of a Maja simulation context used as an alternative to xml context file for Run
 
     """
+
+    def __init__(self, path, type, context, scale_f_aot, scale_f_sr, nodata_aot, verbosity=False):
+        self.verbosity = verbosity
+        self.path = path
+        self.type = type
+        self.context = context
+        self.scale_f_aot = scale_f_aot
+        self.scale_f_sr = scale_f_sr
+        self.nodata_aot = nodata_aot
 
 
 class Image:
@@ -200,38 +209,56 @@ class Run:
     TODO: replace the XML context by a dict, and implement a Yaml parser outside in a Context object
     """
 
-    def __init__(self, f_config, verbosity=False):
+    def __init__(self, config, verbosity=False):
         """Initialization of Run
 
-        :param f_config: XML context file passed as argument runA|runB
+        :param config: Context object or XML context file
         :param verbosity: increase verbosity to INFO is True
         """
-        try:
-            self.xml_config = minidom.parse(f_config)
-            self.verbosity = verbosity
-            self.path = self.xml_config.getElementsByTagName("path")[0].firstChild.nodeValue
-            self.type = self.xml_config.getElementsByTagName("type")[0].firstChild.nodeValue
-            self.context = self.xml_config.getElementsByTagName("context")[0].firstChild.nodeValue
-            self.scale_f_aot = float(self.xml_config.getElementsByTagName("scale_f_aot")[0].firstChild.nodeValue)
-            self.scale_f_sr = float(self.xml_config.getElementsByTagName("scale_f_sr")[0].firstChild.nodeValue)
-            self.nodata_aot = float(self.xml_config.getElementsByTagName("nodata_aot")[0].firstChild.nodeValue)
+        if isinstance(config, Context):
+            if verbosity:
+                print("INFO: Run got a Context object")
 
+            self.verbosity = verbosity
+            self.path = config.path
             # Fix missing trailing / in path
             if self.path[-1] != '/':
                 self.path += '/'
 
-        except IndexError as e:
-            print("ERROR: Mandatory parameter missing in XML file %s" % f_config)
-            print(e)
-            sys.exit(1)
+            self.type = config.type
+            self.context = config.context
+            self.scale_f_aot = config.scale_f_aot
+            self.scale_f_sr = config.scale_f_sr
+            self.nodata_aot = config.nodata_aot
 
-        # Optional parameters
-        try:
-            self.dtm_path = self.xml_config.getElementsByTagName("dtm_path")[0].firstChild.nodeValue
-            self.water_path = self.xml_config.getElementsByTagName("water_path")[0].firstChild.nodeValue
 
-        except:
-            pass
+        else:
+            try:
+                self.xml_config = minidom.parse(config)
+                self.verbosity = verbosity
+                self.path = self.xml_config.getElementsByTagName("path")[0].firstChild.nodeValue
+                self.type = self.xml_config.getElementsByTagName("type")[0].firstChild.nodeValue
+                self.context = self.xml_config.getElementsByTagName("context")[0].firstChild.nodeValue
+                self.scale_f_aot = float(self.xml_config.getElementsByTagName("scale_f_aot")[0].firstChild.nodeValue)
+                self.scale_f_sr = float(self.xml_config.getElementsByTagName("scale_f_sr")[0].firstChild.nodeValue)
+                self.nodata_aot = float(self.xml_config.getElementsByTagName("nodata_aot")[0].firstChild.nodeValue)
+
+                # Fix missing trailing / in path
+                if self.path[-1] != '/':
+                    self.path += '/'
+
+            except IndexError as e:
+                print("ERROR: Mandatory parameter missing in XML file %s" % config)
+                print(e)
+                sys.exit(1)
+
+            # Optional parameters
+            try:
+                self.dtm_path = self.xml_config.getElementsByTagName("dtm_path")[0].firstChild.nodeValue
+                self.water_path = self.xml_config.getElementsByTagName("water_path")[0].firstChild.nodeValue
+
+            except:
+                pass
 
     def load_band(self, name="aot", subset=False, ulx=0, uly=0, lrx=0, lry=0):
         """Get a given image output of Run, optionally a subset by coordinates
@@ -314,121 +341,128 @@ class Run:
         :param name: variable name
         :return: a file name
         """
-        # Kept for backward compatibility
-        if name == "aot":
-            if self.type == "maja":
-                f_img = glob.glob(self.path + "*ATB_R1*")[0]
-            elif self.type == "maqt":
-                f_img = glob.glob(self.path + "ORTHO_SURF_AOT/*10m.tau2")[0]
-            else:
-                print("ERROR: Unable to find aot product...")
-                sys.exit(1)
 
-        if name == "aot_R1":
-            if self.type == "maja":
-                f_img = glob.glob(self.path + "*ATB_R1*")[0]
-            elif self.type == "maqt":
-                f_img = glob.glob(self.path + "ORTHO_SURF_AOT/*10m.tau2")[0]
-            else:
-                print("ERROR: Unable to find aot product...")
-                sys.exit(1)
+        try:
+            # Kept for backward compatibility
+            if name == "aot":
+                if self.type == "maja":
+                    f_img = glob.glob(self.path + "*ATB_R1*")[0]
+                elif self.type == "maqt":
+                    f_img = glob.glob(self.path + "ORTHO_SURF_AOT/*10m.tau2")[0]
+                else:
+                    print("ERROR: Unable to find aot product...")
+                    sys.exit(1)
 
-        if name == "aot_R2":
-            if self.type == "maja":
-                f_img = glob.glob(self.path + "*ATB_R2*")[0]
-            elif self.type == "maqt":
-                f_img = glob.glob(self.path + "ORTHO_SURF_AOT/*20m.tau2")[0]
-            else:
-                print("ERROR: Unable to find aot product...")
-                sys.exit(1)
+            if name == "aot_R1":
+                if self.type == "maja":
+                    f_img = glob.glob(self.path + "*ATB_R1*")[0]
+                elif self.type == "maqt":
+                    f_img = glob.glob(self.path + "ORTHO_SURF_AOT/*10m.tau2")[0]
+                else:
+                    print("ERROR: Unable to find aot product...")
+                    sys.exit(1)
 
-        if name[:3] == "sre":
-            if self.type == "maja":
-                f_img = glob.glob(self.path + "*SRE_" + name[-2:] + "*")[0]
-            elif self.type == "maqt":
-                f_img = glob.glob(self.path + "ORTHO_SURF_AOT/*10m." + name[-2:])[0]
-            else:
-                print("ERROR: Unable to find SRE product...")
-                sys.exit(1)
+            if name == "aot_R2":
+                if self.type == "maja":
+                    f_img = glob.glob(self.path + "*ATB_R2*")[0]
+                elif self.type == "maqt":
+                    f_img = glob.glob(self.path + "ORTHO_SURF_AOT/*20m.tau2")[0]
+                else:
+                    print("ERROR: Unable to find aot product...")
+                    sys.exit(1)
 
-        if name[:3] == "toa":
-            if self.type == "maja":
-                print("ERROR: Not yet implemented...")
-            elif self.type == "maqt":
-                f_img = glob.glob(self.path + "ORTHO_TOA_ABS/*10m." + name[-2:])[0]
-            else:
-                print("ERROR: Unable to find TOA product...")
-                sys.exit(1)
+            if name[:3] == "sre":
+                if self.type == "maja":
+                    f_img = glob.glob(self.path + "*SRE_" + name[-2:] + "*")[0]
+                elif self.type == "maqt":
+                    f_img = glob.glob(self.path + "ORTHO_SURF_AOT/*10m." + name[-2:])[0]
+                else:
+                    print("ERROR: Unable to find SRE product...")
+                    sys.exit(1)
 
-        # Kept for backward compatibility
-        if name == "cloud_mask":
-            if self.type == "maja":
-                f_img = glob.glob(self.path + "MASKS/*CLM_R1.tif")[0]
-            elif self.type == "maqt":
-                f_img = glob.glob(self.path + "MASQUES/NUAGES/*_10m.nua")[0]
-            else:
-                print("ERROR: Unable to find cloud_mask product...")
-                sys.exit(1)
+            if name[:3] == "toa":
+                if self.type == "maja":
+                    print("ERROR: Not yet implemented...")
+                elif self.type == "maqt":
+                    f_img = glob.glob(self.path + "ORTHO_TOA_ABS/*10m." + name[-2:])[0]
+                else:
+                    print("ERROR: Unable to find TOA product...")
+                    sys.exit(1)
 
-        if name == "cloud_mask_R1":
-            if self.type == "maja":
-                f_img = glob.glob(self.path + "MASKS/*CLM_R1.tif")[0]
-            elif self.type == "maqt":
-                f_img = glob.glob(self.path + "MASQUES/NUAGES/*_10m.nua")[0]
-            else:
-                print("ERROR: Unable to find cloud_mask product...")
-                sys.exit(1)
+            # Kept for backward compatibility
+            if name == "cloud_mask":
+                if self.type == "maja":
+                    f_img = glob.glob(self.path + "MASKS/*CLM_R1.tif")[0]
+                elif self.type == "maqt":
+                    f_img = glob.glob(self.path + "MASQUES/NUAGES/*_10m.nua")[0]
+                else:
+                    print("ERROR: Unable to find cloud_mask product...")
+                    sys.exit(1)
 
-        if name == "cloud_mask_R2":
-            if self.type == "maja":
-                f_img = glob.glob(self.path + "MASKS/*CLM_R2.tif")[0]
-            elif self.type == "maqt":
-                f_img = glob.glob(self.path + "MASQUES/NUAGES/*_20m.nua")[0]
-            else:
-                print("ERROR: Unable to find cloud_mask product...")
-                sys.exit(1)
+            if name == "cloud_mask_R1":
+                if self.type == "maja":
+                    f_img = glob.glob(self.path + "MASKS/*CLM_R1.tif")[0]
+                elif self.type == "maqt":
+                    f_img = glob.glob(self.path + "MASQUES/NUAGES/*_10m.nua")[0]
+                else:
+                    print("ERROR: Unable to find cloud_mask product...")
+                    sys.exit(1)
 
-        # Kept for backward compatibility
-        if name == "edge_mask":
-            if self.type == "maja":
-                f_img = glob.glob(self.path + "MASKS/*_EDG_R1.tif")[0]
-            elif self.type == "maqt":
-                f_img = glob.glob(self.path + "MASQUES/BORD/*_10m.bord_final")[0]
-            else:
-                print("ERROR: Unable to find edge_mask product...")
-                sys.exit(1)
+            if name == "cloud_mask_R2":
+                if self.type == "maja":
+                    f_img = glob.glob(self.path + "MASKS/*CLM_R2.tif")[0]
+                elif self.type == "maqt":
+                    f_img = glob.glob(self.path + "MASQUES/NUAGES/*_20m.nua")[0]
+                else:
+                    print("ERROR: Unable to find cloud_mask product...")
+                    sys.exit(1)
 
-        if name == "edge_mask_R1":
-            if self.type == "maja":
-                f_img = glob.glob(self.path + "MASKS/*_EDG_R1.tif")[0]
-            elif self.type == "maqt":
-                f_img = glob.glob(self.path + "MASQUES/BORD/*_10m.bord_final")[0]
-            else:
-                print("ERROR: Unable to find edge_mask product...")
-                sys.exit(1)
+            # Kept for backward compatibility
+            if name == "edge_mask":
+                if self.type == "maja":
+                    f_img = glob.glob(self.path + "MASKS/*_EDG_R1.tif")[0]
+                elif self.type == "maqt":
+                    f_img = glob.glob(self.path + "MASQUES/BORD/*_10m.bord_final")[0]
+                else:
+                    print("ERROR: Unable to find edge_mask product...")
+                    sys.exit(1)
 
-        if name == "edge_mask_R2":
-            if self.type == "maja":
-                f_img = glob.glob(self.path + "MASKS/*_EDG_R2.tif")[0]
-            elif self.type == "maqt":
-                f_img = glob.glob(self.path + "MASQUES/BORD/*_20m.bord_final")[0]
-            else:
-                print("ERROR: Unable to find edge_mask product...")
-                sys.exit(1)
+            if name == "edge_mask_R1":
+                if self.type == "maja":
+                    f_img = glob.glob(self.path + "MASKS/*_EDG_R1.tif")[0]
+                elif self.type == "maqt":
+                    f_img = glob.glob(self.path + "MASQUES/BORD/*_10m.bord_final")[0]
+                else:
+                    print("ERROR: Unable to find edge_mask product...")
+                    sys.exit(1)
 
-        if name == "water mask":
-            try:
-                f_img = glob.glob(self.water_path + "*_10m.water")[0]
-            except:
-                print("WARNING: Unable to find WATER MASK product for %s in %s" % (self.type, self.water_path))
+            if name == "edge_mask_R2":
+                if self.type == "maja":
+                    f_img = glob.glob(self.path + "MASKS/*_EDG_R2.tif")[0]
+                elif self.type == "maqt":
+                    f_img = glob.glob(self.path + "MASQUES/BORD/*_20m.bord_final")[0]
+                else:
+                    print("ERROR: Unable to find edge_mask product...")
+                    sys.exit(1)
 
-        if name == "dtm":
-            try:
-                f_img = glob.glob(self.dtm_path + "*10mfloat.mnt")[0]
-            except:
-                print("WARNING: Unable to find DTM product for %s..." % self.type)
+            if name == "water mask":
+                try:
+                    f_img = glob.glob(self.water_path + "*_10m.water")[0]
+                except:
+                    print("WARNING: Unable to find WATER MASK product for %s in %s" % (self.type, self.water_path))
 
-        return f_img
+            if name == "dtm":
+                try:
+                    f_img = glob.glob(self.dtm_path + "*10mfloat.mnt")[0]
+                except:
+                    print("WARNING: Unable to find DTM product for %s..." % self.type)
+
+            return f_img
+
+        except IndexError as e:
+            print("ERROR: couldn't load %s from product %s" % (name, self.path))
+            print(e)
+            sys.exit(1)
 
     def __get_gdal_dataset(self, f_img, subset=False, ulx=0, uly=0, lrx=0, lry=0):
         """[DEPRECATED] Extract a Gdal object from a product file, optionally a subset from coordinates
@@ -510,8 +544,8 @@ class Timeseries:
 
         :return: a collection of files
         """
-        product_list = self.__get_product_fullpath_list()
-        print(self.common_product_list)
+        self.__get_product_fullpath_list()
+
         # self.__write_collection(product_list)
 
     def __get_product_fullpath_list(self):
@@ -537,25 +571,11 @@ class Timeseries:
         a_set = set(a)
         b_set = set(b)
         if (a_set & b_set):
-            return list(a_set & b_set)
+            return sorted(list(a_set & b_set))
         else:
             print("WARNING: No common elements in product list")
 
-    def __write_collection(self, product_list):
-        """Produce XML contexts in loop over product list
-
-        :param product_list:
-        :return: a collection of XML files
-        """
-        for product in product_list:
-            self.__write_run_xml(product)
-
-    def __write_run_xml(self, product):
-        """Write an XML context
-        
-        :param product:
-        :return: an XML context object
-        """
+    def __to_context(self):
         pass
 
 
@@ -714,20 +734,20 @@ def single_scatterplot(a, b, mask, x_context="A", y_context="B", mode='aot', png
 
     rmse = np.std(masked_a.band - masked_b.band)
 
-    fig, (ax1) = plt.subplots(1, figsize=(6, 6))
-    ax1.set_title("%3.1f %% cloud-free pixels (rmse = %5.4f)" % (ratio * 100, rmse))
-
-    if mode == 'sre':
-        ax1.plot([0, 1.0], [0, 1.0], 'k--')
-    elif mode == 'aot':
-        ax1.plot([0, 0.6], [0, 0.6], 'k--')
-
-    ax1.set_aspect('equal', 'box')
-    ax1.set_xlabel(x_context + " " + a.band_name)
-    ax1.set_ylabel(y_context + " " + b.band_name)
-    ax1.plot(masked_a.band, masked_b.band, 'bo', markersize=2)
-
     if png == True:
+        fig, (ax1) = plt.subplots(1, figsize=(6, 6))
+        ax1.set_title("%3.1f %% cloud-free pixels (rmse = %5.4f)" % (ratio * 100, rmse))
+
+        if mode == 'sre':
+            ax1.plot([0, 1.0], [0, 1.0], 'k--')
+        elif mode == 'aot':
+            ax1.plot([0, 0.6], [0, 0.6], 'k--')
+
+        ax1.set_aspect('equal', 'box')
+        ax1.set_xlabel(x_context + " " + a.band_name)
+        ax1.set_ylabel(y_context + " " + b.band_name)
+        ax1.plot(masked_a.band, masked_b.band, 'bo', markersize=2)
+
         f_savefig = x_context + "_" + masked_a.band_name.replace(" ",
                                                                  "-") + "_vs_" + y_context + "_" + masked_b.band_name.replace(
             " ", "-") + ".png"

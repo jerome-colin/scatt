@@ -111,7 +111,7 @@ def compare(f_run_a, f_run_b, verbose, subset, ulx, uly, lrx, lry, report=False,
 
     if report:
         print("REPORT:", run_a.get_timestamp(), cloud_free_ratio, *rmses)
-
+        
 
 if __name__ == "__main__":
     main()
