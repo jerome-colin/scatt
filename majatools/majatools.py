@@ -473,24 +473,39 @@ class Timeseries:
     def __init__(self, f_config, verbosity=False):
         """Initialization of Timeseries
 
-        :param f_config: XML context file passed as argument runA|runB
+        :param f_config: XML configuration file
         :param verbosity: increase verbosity to INFO is True
         """
         try:
             self.xml_config = minidom.parse(f_config)
             self.verbosity = verbosity
             self.root_path = self.xml_config.getElementsByTagName("root_path")[0].firstChild.nodeValue
-            self.collection_path = self.xml_config.getElementsByTagName("collection_path")[0].firstChild.nodeValue
+            self.collection_1_path = self.xml_config.getElementsByTagName("collection_1_path")[0].firstChild.nodeValue
+            self.collection_2_path = self.xml_config.getElementsByTagName("collection_2_path")[0].firstChild.nodeValue
             self.type = self.xml_config.getElementsByTagName("type")[0].firstChild.nodeValue
-            self.context = self.xml_config.getElementsByTagName("context")[0].firstChild.nodeValue
+            self.context_1 = self.xml_config.getElementsByTagName("context_1")[0].firstChild.nodeValue
+            self.context_2 = self.xml_config.getElementsByTagName("context_2")[0].firstChild.nodeValue
             self.scale_f_aot = float(self.xml_config.getElementsByTagName("scale_f_aot")[0].firstChild.nodeValue)
             self.scale_f_sr = float(self.xml_config.getElementsByTagName("scale_f_sr")[0].firstChild.nodeValue)
             self.nodata_aot = float(self.xml_config.getElementsByTagName("nodata_aot")[0].firstChild.nodeValue)
+            self.subset_ulx = float(self.xml_config.getElementsByTagName("subset_ulx")[0].firstChild.nodeValue)
+            self.subset_uly = float(self.xml_config.getElementsByTagName("subset_uly")[0].firstChild.nodeValue)
+            self.subset_lrx = float(self.xml_config.getElementsByTagName("subset_lrx")[0].firstChild.nodeValue)
+            self.subset_lry = float(self.xml_config.getElementsByTagName("subset_lry")[0].firstChild.nodeValue)
+            self.report = self.xml_config.getElementsByTagName("report")[0].firstChild.nodeValue
+            self.plot = self.xml_config.getElementsByTagName("plot")[0].firstChild.nodeValue
+            self.quicklook = self.xml_config.getElementsByTagName("quicklook")[0].firstChild.nodeValue
 
         except IndexError as e:
             print("ERROR: Mandatory parameter missing in XML file %s" % f_config)
             print(e)
             sys.exit(1)
+
+        except ValueError as e:
+            print("ERROR: Bad value type in XML file %s" % f_config)
+            print(e)
+            sys.exit(1)
+
 
     def generate(self):
         """Create a collection of XML contexts for a given timeseries collection
