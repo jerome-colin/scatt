@@ -43,7 +43,12 @@ def wrapper(f_config, verbose=False):
                                     timeseries.scale_f_sr, \
                                     timeseries.nodata_aot)
 
-        compare(context_1, context_2, verbose==verbose, subset=True, ulx=timeseries.subset_ulx, uly=timeseries.subset_uly, lrx=timeseries.subset_lrx, lry=timeseries.subset_lry, report=timeseries.report, plots=timeseries.plot, quicklook=timeseries.quicklook)
+        try:
+            compare(context_1, context_2, verbose=verbose, subset=True, ulx=timeseries.subset_ulx, uly=timeseries.subset_uly, lrx=timeseries.subset_lrx, lry=timeseries.subset_lry, report=timeseries.report, plots=timeseries.plot, quicklook=timeseries.quicklook)
+
+        except IndexError as e:
+            print(e)
+            pass
 
 if __name__ == "__main__":
     main()

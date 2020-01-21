@@ -110,8 +110,10 @@ def compare(f_run_a, f_run_b, verbose, subset, ulx, uly, lrx, lry, report=False,
             rmses[n] = rmse
 
     if report:
-        print("REPORT:", run_a.get_timestamp(), cloud_free_ratio, *rmses)
-        
+        if cloud_free_ratio >= 0.5:
+            if len(s2bands) == 4:
+                print("REPORT, '%s', %4.2f, %6.4f, %6.4f, %6.4f, %6.4f" % (str(run_a.get_timestamp()), cloud_free_ratio, rmses[0], rmses[1], rmses[2], rmses[3]))
+
 
 if __name__ == "__main__":
     main()

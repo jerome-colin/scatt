@@ -191,7 +191,12 @@ class Image:
         """Convert a Image.band array to unint8
         :return: an unint8 numpy array
         """
-        img = self.band / np.max(self.band) * 256
+        b_max = np.max(self.band)
+        if b_max > 0:
+            img = self.band / np.max(self.band) * 256
+        else:
+            img = self.band * 0
+
         return img.astype(np.uint8)
 
     def get_pixel_count(self):
