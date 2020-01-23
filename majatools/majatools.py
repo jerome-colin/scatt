@@ -9,7 +9,7 @@ Note: don't mix gdal packages from base and from forge
 """
 __author__ = "Jerome Colin"
 __license__ = "CC BY"
-__version__ = "0.3.3"
+__version__ = "0.3.4"
 
 import datetime
 import glob
@@ -549,6 +549,10 @@ class Timeseries:
             self.report = self.xml_config.getElementsByTagName("report")[0].firstChild.nodeValue
             self.plot = self.xml_config.getElementsByTagName("plot")[0].firstChild.nodeValue
             self.quicklook = self.xml_config.getElementsByTagName("quicklook")[0].firstChild.nodeValue
+            self.reference_collection_path = self.xml_config.getElementsByTagName("reference_collection_path")[0].firstChild.nodeValue
+            # Fix missing trailing / in path
+            if self.reference_collection_path[-1] != '/':
+                self.reference_collection_path += '/'
 
         except IndexError as e:
             print("ERROR: Mandatory parameter missing in XML file %s" % f_config)
@@ -565,9 +569,17 @@ class Timeseries:
 
         :return: a collection of files
         """
+        if self.verbosity:
+            print("INFO: gathering products")
+
         self.__get_product_fullpath_list()
 
-        # self.__write_collection(product_list)
+        if self.verbosity:
+            print("INFO: reference collection is set to %s" % self.reference_collection_path)
+
+        if self.reference_collection_path is not None:
+            self.__get_reference_fullpath_list()
+            self.__common_reference()
 
     def __get_product_fullpath_list(self):
         """Generate a list of products available in root_path
@@ -582,6 +594,15 @@ class Timeseries:
         self.common_product_list = self.__common_member(product_list_1, product_list_2)
         self.common_product_list_len = len(self.common_product_list)
 
+    def __get_reference_fullpath_list(self):
+
+        pattern = "*.hdf"
+
+        self.reference_list = [os.path.basename(x) for x in glob.glob(self.reference_collection_path + pattern)]
+
+        if self.verbosity:
+            print("INFO: found %i reference elements in collection" % len(self.reference_list))
+
     def __common_member(self, a, b):
         """Return common elements of two lists a and b
 
@@ -595,6 +616,29 @@ class Timeseries:
             return sorted(list(a_set & b_set))
         else:
             print("WARNING: No common elements in product list")
+
+    def __common_reference(self):
+
+        for product in self.common_product_list:
+            try:
+                pattern = "[0-9]{8}"
+                product_timestamp = re.findall(pattern, product)
+
+            except IndexError:
+                print("WARNING: couldn't find any timestamp for %s" % self.common_product_list)
+
+            for ref in self.reference_list:
+                try:
+                    pattern = "[0-9]{8}"
+                    reference_timestamp = re.findall(pattern, ref)
+
+                    if product_timestamp == reference_timestamp:
+                        if self.verbosity:
+                            print("INFO: %s matches %s" % (ref, product))
+
+                except IndexError:
+                    print("WARNING: couldn't find any timestamp for %s" % self.common_product_list)
+
 
     def __to_context(self):
         pass
