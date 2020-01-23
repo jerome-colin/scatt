@@ -15,6 +15,7 @@ import datetime
 import glob
 import sys
 import numpy as np
+from scipy.stats import describe
 import matplotlib.pyplot as plt
 import os
 import re
@@ -678,6 +679,31 @@ def get_geodata(f_img, subset=False, ulx=0, uly=0, lrx=0, lry=0):
 
     return data
 
+def get_hdf_as_array(hdf_file, scale_f=10000, verbose=False):
+    """Return and HDF MODIS-like file as array of dimension band:cols:rows
+
+    :param hdf_file: HDF MODIS-like file
+    :param scale_f: MODIS reflectance scale factor, defaults to 1/10000
+    :param verbose: if True prints stats per band
+    """
+
+    # open the dataset
+    hdf_ds = gdal.Open(hdf_file, gdal.GA_ReadOnly)
+    hdf_subds = hdf_ds.GetSubDatasets()
+    print(len(hdf_subds))
+
+    hdf_arr = np.zeros((len(hdf_subds), 900, 900))
+
+    for b in range(len(hdf_subds)):
+        hdf_subds_name = hdf_subds[b][0]
+        hdf_arr[b,:,:] = gdal.Open(hdf_subds_name, gdal.GA_ReadOnly).ReadAsArray().astype(np.int16) / scale_f
+
+    if verbose:
+        for b in range(len(hdf_subds)):
+            print(hdf_subds[b][0])
+            print(describe(hdf_arr[b].flatten()))
+
+    return hdf_arr
 
 def diffmap(a, b, mode, with_dtm=False):
     """Produce an absolute difference map as image
