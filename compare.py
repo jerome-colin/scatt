@@ -84,6 +84,12 @@ def compare(f_run_a, f_run_b, verbose, subset, ulx, uly, lrx, lry, report=False,
     clouds_a = run_a.load_band(name="cloud_mask", subset=subset, ulx=ulx, lry=lry, lrx=lrx, uly=uly)
     clouds_b = run_b.load_band(name="cloud_mask", subset=subset, ulx=ulx, lry=lry, lrx=lrx, uly=uly)
 
+    # Load AOT and vap
+    aot_a = run_a.load_band(name="aot", subset=subset, ulx=ulx, lry=lry, lrx=lrx, uly=uly)
+    vap_a = run_a.load_band(name="vap", subset=subset, ulx=ulx, lry=lry, lrx=lrx, uly=uly)
+    aot = np.nanmean(aot_a.band)
+    vap = np.nanmean(vap_a.band)
+
     # Common pure pixels mask
     common_pure_pixels = clouds_a.band + clouds_b.band + edge_a.band + edge_b.band
 
@@ -110,7 +116,9 @@ def compare(f_run_a, f_run_b, verbose, subset, ulx, uly, lrx, lry, report=False,
             rmses[n] = rmse
 
     if report:
-        print("REPORT:", run_a.get_timestamp(), cloud_free_ratio, *rmses)
+        if cloud_free_ratio >= 0.5:
+            if len(s2bands) == 4:
+                print("REPORT, %s, %4.2f, %6.4f, %6.4f, %6.4f, %6.4f, %6.4f, %6.4f" % (str(run_a.get_timestamp()), cloud_free_ratio, rmses[0], rmses[1], rmses[2], rmses[3], aot, vap))
 
 
 if __name__ == "__main__":
