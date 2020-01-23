@@ -324,16 +324,23 @@ class Run:
         blue = self.load_band(name="sreB2", subset=subset, ulx=ulx, lry=lry, lrx=lrx, uly=uly)
         return red, green, blue
 
-    def get_timestamp(self):
+    def get_timestamp(self, short=False):
         """Get the timestamp of a given Run object as a string of format %Y%m%d-%H%M%S"
 
         :return: a string
         """
         if self.type == "maja":
             try:
-                pattern = "[0-9]{8}\-[0-9]{6}"
-                s = re.findall(pattern, self.path)
-                return datetime.datetime.strptime(s[0], "%Y%m%d-%H%M%S")
+
+                if short:
+                    pattern = "[0-9]{8}"
+                    s = re.findall(pattern, self.path)
+                    return s[0]
+                else:
+                    pattern = "[0-9]{8}\-[0-9]{6}"
+                    s = re.findall(pattern, self.path)
+                    return datetime.datetime.strptime(s[0], "%Y%m%d-%H%M%S")
+
             except IndexError:
                 print("WARNING: couldn't find any timestamp for %s" % self.context)
                 return None
@@ -369,7 +376,7 @@ class Run:
                 if self.type == "maja":
                     f_img = glob.glob(self.path + "*ATB_R1*")[0]
                 elif self.type == "maqt":
-                    f_img = glob.glob(self.path + "ORTHO_SURF_VAP/*10m.tau2")[0] # NOT TESTED YET!!
+                    f_img = glob.glob(self.path + "ORTHO_SURF_VAP/*10m.tau2")[0]  # NOT TESTED YET!!
                 else:
                     print("ERROR: Unable to find aot product...")
                     sys.exit(1)
@@ -394,7 +401,11 @@ class Run:
 
             if name[:3] == "sre":
                 if self.type == "maja":
-                    f_img = glob.glob(self.path + "*SRE_" + name[-2:] + "*")[0]
+                    try:
+                        f_img = glob.glob(self.path + "*SRE_" + name[-2:] + "*")[0]
+                    except IndexError:
+                        if name[-3:] == "B8A":
+                            f_img = glob.glob(self.path + "*SRE_" + name[-3:] + "*")[0]
                 elif self.type == "maqt":
                     f_img = glob.glob(self.path + "ORTHO_SURF_AOT/*10m." + name[-2:])[0]
                 else:
@@ -546,13 +557,19 @@ class Timeseries:
             self.subset_uly = float(self.xml_config.getElementsByTagName("subset_uly")[0].firstChild.nodeValue)
             self.subset_lrx = float(self.xml_config.getElementsByTagName("subset_lrx")[0].firstChild.nodeValue)
             self.subset_lry = float(self.xml_config.getElementsByTagName("subset_lry")[0].firstChild.nodeValue)
-            self.report = self.xml_config.getElementsByTagName("report")[0].firstChild.nodeValue
-            self.plot = self.xml_config.getElementsByTagName("plot")[0].firstChild.nodeValue
-            self.quicklook = self.xml_config.getElementsByTagName("quicklook")[0].firstChild.nodeValue
-            self.reference_collection_path = self.xml_config.getElementsByTagName("reference_collection_path")[0].firstChild.nodeValue
+            self.report = self.__convert_to_bool(self.xml_config.getElementsByTagName("report")[0].firstChild.nodeValue)
+            self.plot = self.__convert_to_bool(self.xml_config.getElementsByTagName("plot")[0].firstChild.nodeValue)
+            self.quicklook = self.__convert_to_bool(self.xml_config.getElementsByTagName("quicklook")[0].firstChild.nodeValue)
+            self.reference_collection_path = self.xml_config.getElementsByTagName("reference_collection_path")[
+                0].firstChild.nodeValue
+            self.reference_collection_name = self.xml_config.getElementsByTagName("reference_collection_name")[
+                0].firstChild.nodeValue
             # Fix missing trailing / in path
             if self.reference_collection_path[-1] != '/':
                 self.reference_collection_path += '/'
+
+            if verbosity:
+                print("INFO: report set to %r, plot set to %r, quicklook set to %r" % (self.report, self.plot, self.quicklook))
 
         except IndexError as e:
             print("ERROR: Mandatory parameter missing in XML file %s" % f_config)
@@ -578,8 +595,27 @@ class Timeseries:
             print("INFO: reference collection is set to %s" % self.reference_collection_path)
 
         if self.reference_collection_path is not None:
+            self.common_product_reference_list = []
             self.__get_reference_fullpath_list()
             self.__common_reference()
+
+    def find_reference(self, product):
+        if self.reference_collection_path is not None:
+            try:
+                pid = [row[0] for row in self.common_product_reference_list].index(product)
+                if self.verbosity:
+                    print("INFO: found reference match for %s" % product)
+
+                return self.common_product_reference_list[pid][1]
+
+            except ValueError:
+                if self.verbosity:
+                    print("INFO: no reference match for %s" % product)
+
+                return None
+
+        else:
+            return None
 
     def __get_product_fullpath_list(self):
         """Generate a list of products available in root_path
@@ -603,6 +639,14 @@ class Timeseries:
         if self.verbosity:
             print("INFO: found %i reference elements in collection" % len(self.reference_list))
 
+    def __convert_to_bool(self, val):
+        if val == "True":
+            return True
+        if val == "False":
+            return False
+        else:
+            return None
+
     def __common_member(self, a, b):
         """Return common elements of two lists a and b
 
@@ -618,6 +662,10 @@ class Timeseries:
             print("WARNING: No common elements in product list")
 
     def __common_reference(self):
+        """Defines a list of common product:reference pairs
+
+        :return: self.common_product_reference_list
+        """
 
         for product in self.common_product_list:
             try:
@@ -636,9 +684,10 @@ class Timeseries:
                         if self.verbosity:
                             print("INFO: %s matches %s" % (ref, product))
 
+                        self.common_product_reference_list.append([product, ref])
+
                 except IndexError:
                     print("WARNING: couldn't find any timestamp for %s" % self.common_product_list)
-
 
     def __to_context(self):
         pass
@@ -723,6 +772,7 @@ def get_geodata(f_img, subset=False, ulx=0, uly=0, lrx=0, lry=0):
 
     return data
 
+
 def get_hdf_as_array(hdf_file, scale_f=10000, verbose=False):
     """Return and HDF MODIS-like file as array of dimension band:cols:rows
 
@@ -740,7 +790,7 @@ def get_hdf_as_array(hdf_file, scale_f=10000, verbose=False):
 
     for b in range(len(hdf_subds)):
         hdf_subds_name = hdf_subds[b][0]
-        hdf_arr[b,:,:] = gdal.Open(hdf_subds_name, gdal.GA_ReadOnly).ReadAsArray().astype(np.int16) / scale_f
+        hdf_arr[b, :, :] = gdal.Open(hdf_subds_name, gdal.GA_ReadOnly).ReadAsArray().astype(np.int16) / scale_f
 
     if verbose:
         for b in range(len(hdf_subds)):
@@ -748,6 +798,7 @@ def get_hdf_as_array(hdf_file, scale_f=10000, verbose=False):
             print(describe(hdf_arr[b].flatten()))
 
     return hdf_arr
+
 
 def diffmap(a, b, mode, with_dtm=False):
     """Produce an absolute difference map as image
@@ -822,28 +873,40 @@ def single_scatterplot(a, b, mask, x_context="A", y_context="B", mode='aot', png
 
     ratio = mask_count / px_count
 
-    rmse = np.std(masked_a.band - masked_b.band)
+    try:
+        #rmse = np.std(masked_a.band - masked_b.band)
+        rmse = np.sqrt(np.mean((masked_a.band - masked_b.band)**2))
 
-    if png == True:
-        fig, (ax1) = plt.subplots(1, figsize=(6, 6))
-        ax1.set_title("%3.1f %% cloud-free pixels (rmse = %5.4f)" % (ratio * 100, rmse))
 
-        if mode == 'sre':
-            ax1.plot([0, 1.0], [0, 1.0], 'k--')
-        elif mode == 'aot':
-            ax1.plot([0, 0.6], [0, 0.6], 'k--')
+        if png == True:
+            fig, (ax1) = plt.subplots(1, figsize=(6, 6))
+            ax1.set_title("%3.1f %% cloud-free pixels (rmse = %5.4f)" % (ratio * 100, rmse))
 
-        ax1.set_aspect('equal', 'box')
-        ax1.set_xlabel(x_context + " " + a.band_name)
-        ax1.set_ylabel(y_context + " " + b.band_name)
-        ax1.plot(masked_a.band, masked_b.band, 'bo', markersize=2)
+            if mode == 'sre':
+                ax1.plot([0, 1.0], [0, 1.0], 'k--')
+                ax1.set_xlim(0, 1)
+                ax1.set_ylim(0, 1)
+            elif mode == 'aot':
+                ax1.plot([0, 0.6], [0, 0.6], 'k--')
 
-        f_savefig = x_context + "_" + masked_a.band_name.replace(" ",
-                                                                 "-") + "_vs_" + y_context + "_" + masked_b.band_name.replace(
-            " ", "-") + ".png"
-        plt.savefig(f_savefig, format='png')
+            ax1.set_aspect('equal', 'box')
+            ax1.set_xlabel(x_context + " " + a.band_name)
+            ax1.set_ylabel(y_context + " " + b.band_name)
+            ax1.plot(masked_a.band, masked_b.band, 'bo', markersize=2)
 
-    return ratio, rmse
+            f_savefig = x_context + "_" + masked_a.band_name.replace(" ",
+                                                                     "-") + "_vs_" + y_context + "_" + masked_b.band_name.replace(
+                " ", "-") + ".png"
+            plt.savefig(f_savefig, format='png')
+            plt.close(fig)
+
+        return ratio, rmse
+
+    except ValueError:
+        print("WARNING: got a bad shape in single_scatterplot, had to skip this one : %s" % (a.band_name))
+        print("-------: image %s has shape %s" % (a.band_name, str(a.band.shape)))
+        print("-------: image %s has shape %s" % (b.band_name, str(b.band.shape)))
+        return 0, 0
 
 
 def single_quicklook_rgb(r, g, b, outfile="toto.png"):
