@@ -293,6 +293,12 @@ class Run:
         elif name == "aot" and self.type == "maqt":
             return Image(product.GetRasterBand(1).ReadAsArray(), self.type + " " + name, \
                          scale_f=self.scale_f_aot, verbosity=self.verbosity)
+        if name == "vap" and self.type == "maja":
+            return Image(product.GetRasterBand(1).ReadAsArray(), self.type + " " + name, \
+                         scale_f=20, verbosity=self.verbosity)
+        elif name == "vap" and self.type == "maqt":
+            return Image(product.GetRasterBand(1).ReadAsArray(), self.type + " " + name, \
+                         scale_f=self.scale_f_aot, verbosity=self.verbosity)
         elif name[:3] == "sre":
             return Image(product.GetRasterBand(1).ReadAsArray(), self.type + " " + name, \
                          scale_f=self.scale_f_sr, verbosity=self.verbosity)
@@ -354,6 +360,15 @@ class Run:
                     f_img = glob.glob(self.path + "*ATB_R1*")[0]
                 elif self.type == "maqt":
                     f_img = glob.glob(self.path + "ORTHO_SURF_AOT/*10m.tau2")[0]
+                else:
+                    print("ERROR: Unable to find aot product...")
+                    sys.exit(1)
+
+            if name == "vap":
+                if self.type == "maja":
+                    f_img = glob.glob(self.path + "*ATB_R1*")[0]
+                elif self.type == "maqt":
+                    f_img = glob.glob(self.path + "ORTHO_SURF_VAP/*10m.tau2")[0] # NOT TESTED YET!!
                 else:
                     print("ERROR: Unable to find aot product...")
                     sys.exit(1)
