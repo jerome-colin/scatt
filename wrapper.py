@@ -46,14 +46,17 @@ def wrapper(f_config, verbose=False, onlyref=False):
         reference = timeseries.find_reference(product)
 
         if reference is not None:
-            print("Got %s as reference " % reference)
+            if verbose:
+                print("INFO: Got %s as reference " % reference)
+
             reference_fullpath = timeseries.reference_collection_path + reference
 
         else:
             reference_fullpath = None
 
         try:
-            compare(context_1, context_2, reference=reference_fullpath, verbose=verbose, subset=True, ulx=timeseries.subset_ulx,
+            compare(context_1, context_2, reference=reference_fullpath, reference_name=timeseries.reference_collection_name,
+                    verbose=verbose, subset=True, ulx=timeseries.subset_ulx,
                     uly=timeseries.subset_uly, lrx=timeseries.subset_lrx, lry=timeseries.subset_lry,
                     report=timeseries.report, plots=timeseries.plot, quicklook=timeseries.quicklook)
 

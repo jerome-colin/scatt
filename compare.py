@@ -69,7 +69,7 @@ def main():
     sys.exit(0)
 
 
-def compare(f_run_a, f_run_b, verbose, subset, ulx, uly, lrx, lry, reference=None, report=False, plots=False, quicklook=False):
+def compare(f_run_a, f_run_b, verbose, subset, ulx, uly, lrx, lry, reference=None, reference_name='ref', report=False, plots=False, quicklook=False):
     # Creating instance of runs
     run_a = majatools.Run(f_run_a, verbosity=verbose)
     run_b = majatools.Run(f_run_b, verbosity=verbose)
@@ -121,7 +121,8 @@ def compare(f_run_a, f_run_b, verbose, subset, ulx, uly, lrx, lry, reference=Non
             sre_b_rs = run_b.load_band(name="sre" + s2bands[n], subset=subset, ulx=ulx, lry=lry, lrx=lrx, uly=uly)
 
             cloud_free_ratio, rmse = majatools.single_scatterplot(sre_a_rs, sre_b_rs, common_pure_pixels,
-                                                                  x_context=run_a.context, y_context=run_b.context,
+                                                                  x_context=run_a.get_timestamp(short=True)+'_'+run_a.context,
+                                                                  y_context=run_b.get_timestamp(short=True)+'_'+run_b.context,
                                                                   mode="sre", png=plots)
 
             if report:
@@ -134,21 +135,23 @@ def compare(f_run_a, f_run_b, verbose, subset, ulx, uly, lrx, lry, reference=Non
 
     if reference is not None:
         for n in range(len(s2bands)):
-            ref_band = majatools.Image(ref_subset[n],"ref_"+str(run_a.get_timestamp(short=True))+s2bands[n])
+            ref_band = majatools.Image(ref_subset[n],"ref_"+str(run_a.get_timestamp(short=True))+str(s2bands[n]))
             sre_a_rs = run_a.load_band(name="sre" + s2bands[n], subset=subset, ulx=ulx, lry=lry, lrx=lrx, uly=uly)
             cloud_free_ratio, rmse = majatools.single_scatterplot(ref_band, sre_a_rs, common_pure_pixels,
-                                                                  x_context="acix", y_context=run_a.context,
-                                                                  mode="sre", png=True)
+                                                                  x_context=reference_name,
+                                                                  y_context=run_a.get_timestamp(short=True)+'_'+run_a.context,
+                                                                  mode="sre", png=plots)
 
             if report:
                 rmses[n] = rmse
 
         for n in range(len(s2bands)):
-            ref_band = majatools.Image(ref_subset[n], "ref_" + str(run_a.get_timestamp(short=True)))
+            ref_band = majatools.Image(ref_subset[n], "ref_" + str(run_a.get_timestamp(short=True))+str(s2bands[n]))
             sre_b_rs = run_b.load_band(name="sre" + s2bands[n], subset=subset, ulx=ulx, lry=lry, lrx=lrx, uly=uly)
             cloud_free_ratio, rmse = majatools.single_scatterplot(ref_band, sre_b_rs, common_pure_pixels,
-                                                                  x_context="acix", y_context=run_b.context,
-                                                                  mode="sre", png=True)
+                                                                  x_context=reference_name,
+                                                                  y_context=run_b.get_timestamp(short=True)+'_'+run_b.context,
+                                                                  mode="sre", png=plots)
 
             if report:
                 rmses[n+len(s2bands)] = rmse

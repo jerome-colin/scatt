@@ -18,6 +18,7 @@ import numpy as np
 from scipy.stats import describe
 import matplotlib.pyplot as plt
 import os
+import subprocess, shlex
 import re
 from PIL import Image as pillow
 
@@ -761,7 +762,10 @@ def get_geodata(f_img, subset=False, ulx=0, uly=0, lrx=0, lry=0):
     if subset:
         try:
             translate = 'gdal_translate -projwin %s %s %s %s %s %s' % (ulx, uly, lrx, lry, f_img, ".tmp.tif")
-            os.system(translate)
+            #os.system(translate)
+            args = shlex.split(translate)
+            prog = subprocess.Popen(args, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            out, err = prog.communicate()
             data = gdal.Open(".tmp.tif")
             os.remove(".tmp.tif")
 
@@ -784,7 +788,8 @@ def get_hdf_as_array(hdf_file, scale_f=10000, verbose=False):
     # open the dataset
     hdf_ds = gdal.Open(hdf_file, gdal.GA_ReadOnly)
     hdf_subds = hdf_ds.GetSubDatasets()
-    print(len(hdf_subds))
+    if verbose:
+        print("INFO: %i bands found in %s" % (len(hdf_subds), hdf_file))
 
     hdf_arr = np.zeros((len(hdf_subds), 900, 900))
 
@@ -873,9 +878,18 @@ def single_scatterplot(a, b, mask, x_context="A", y_context="B", mode='aot', png
 
     ratio = mask_count / px_count
 
+    # TMP TMP TMP
+    #search = np.where(masked_a.band > 0.2)
+    #masked_a.band[search] = np.nan
+    #masked_b.band[search] = np.nan
+
+    #mask_count = masked_a.get_pixel_count()
+    #ratio = mask_count / px_count
+    # ------------
+
     try:
         #rmse = np.std(masked_a.band - masked_b.band)
-        rmse = np.sqrt(np.mean((masked_a.band - masked_b.band)**2))
+        rmse = np.sqrt(np.nanmean((masked_a.band - masked_b.band)**2))
 
 
         if png == True:
@@ -883,16 +897,18 @@ def single_scatterplot(a, b, mask, x_context="A", y_context="B", mode='aot', png
             ax1.set_title("%3.1f %% cloud-free pixels (rmse = %5.4f)" % (ratio * 100, rmse))
 
             if mode == 'sre':
-                ax1.plot([0, 1.0], [0, 1.0], 'k--')
-                ax1.set_xlim(0, 1)
-                ax1.set_ylim(0, 1)
+                ax1.plot([0, 1.0], [0, 1.0], 'k--', linewidth=1)
+                ax1.set_xlim(0, 0.5)
+                ax1.set_ylim(0, 0.5)
             elif mode == 'aot':
                 ax1.plot([0, 0.6], [0, 0.6], 'k--')
 
             ax1.set_aspect('equal', 'box')
             ax1.set_xlabel(x_context + " " + a.band_name)
             ax1.set_ylabel(y_context + " " + b.band_name)
-            ax1.plot(masked_a.band, masked_b.band, 'bo', markersize=2)
+            #ax1.plot(masked_a.band, masked_b.band, 'bo', markersize=2)
+            plt.hexbin(masked_a.band, masked_b.band, gridsize=(240, 240), cmap=plt.cm.Oranges)
+            plt.colorbar()
 
             f_savefig = x_context + "_" + masked_a.band_name.replace(" ",
                                                                      "-") + "_vs_" + y_context + "_" + masked_b.band_name.replace(
