@@ -891,8 +891,7 @@ def single_scatterplot(a, b, mask, x_context="A", y_context="B", mode='aot', png
         #rmse = np.std(masked_a.band - masked_b.band)
         rmse = np.sqrt(np.nanmean((masked_a.band - masked_b.band)**2))
 
-
-        if png == True:
+        if (png == True and ratio >= 0.5):
             fig, (ax1) = plt.subplots(1, figsize=(6, 6))
             ax1.set_title("%3.1f %% cloud-free pixels (rmse = %5.4f)" % (ratio * 100, rmse))
 
@@ -915,6 +914,9 @@ def single_scatterplot(a, b, mask, x_context="A", y_context="B", mode='aot', png
                 " ", "-") + ".png"
             plt.savefig(f_savefig, format='png')
             plt.close(fig)
+
+        else:
+            print("WARNING: cloud free ratio of %6.2f, no png for %s" % (ratio, a.band_name))
 
         return ratio, rmse
 

@@ -104,9 +104,9 @@ def compare(f_run_a, f_run_b, verbose, subset, ulx, uly, lrx, lry, reference=Non
 
     if quicklook:
         if verbose:
-            print("INFO: generating a quicklook as %s " % (run_a.context+".png"))
+            print("INFO: generating a quicklook as %s " % (run_a.context+run_a.get_timestamp(short=True)+".png"))
         red, green, blue = run_a.get_rgb(subset=subset, ulx=ulx, lry=lry, lrx=lrx, uly=uly)
-        majatools.single_quicklook_rgb(red, green, blue, outfile=run_a.context)
+        majatools.single_quicklook_rgb(red, green, blue, outfile=run_a.context+run_a.get_timestamp(short=True)+".png")
 
     # Reporting
     if report:
